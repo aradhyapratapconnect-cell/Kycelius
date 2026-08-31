@@ -1,0 +1,45 @@
+Kyclius demo · HTML
+Showing this large file as plain text to keep the page responsive. The full content is still here.
+<p class="text-xs text-[#879489] mb-4">You decide what Kyclius can do without asking. This list also drives Autonomous
+    Mode — one setting, not two.</p>
+<div class="divide-y divide-white/5 glass rounded-xl overflow-hidden">
+    <div class="flex items-center justify-between px-4 py-3"> <span class="text-sm">Open applications</span> <select
+            class="bg-black/25 border border-white/10 rounded-md text-xs px-2 py-1.5 text-[#82D8A6]">
+            <option>Always Allow</option>
+            <option>Ask Every Time</option>
+            <option>Never Allow</option>
+        </select> </div>
+    <div class="flex items-center justify-between px-4 py-3"> <span class="text-sm">Create files</span> <select
+            class="bg-black/25 border border-white/10 rounded-md text-xs px-2 py-1.5 text-[#82D8A6]">
+            <option>Always Allow</option>
+            <option>Ask Every Time</option>
+            <option>Never Allow</option>
+        </select> </div>
+    <div class="flex items-center justify-between px-4 py-3"> <span class="text-sm">Delete files</span> <select
+            class="bg-black/25 border border-white/10 rounded-md text-xs px-2 py-1.5 text-[#8BCFF0]">
+            <option>Always Allow</option>
+            <option selected>Ask Every Time</option>
+            <option>Never Allow</option>
+        </select> </div>
+    <div class="flex items-center justify-between px-4 py-3"> <span class="text-sm">Send email</span> <select
+            class="bg-black/25 border border-white/10 rounded-md text-xs px-2 py-1.5 text-[#8BCFF0]">
+            <option>Always Allow</option>
+            <option selected>Ask Every Time</option>
+            <option>Never Allow</option>
+        </select> </div>
+    <div class="flex items-center justify-between px-4 py-3"> <span class="text-sm">Run shell commands</span> <select
+            class="bg-black/25 border border-white/10 rounded-md text-xs px-2 py-1.5 text-[#8BCFF0]">
+            <option>Always Allow</option>
+            <option selected>Ask Every Time</option>
+            <option>Never Allow</option>
+        </select> </div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<script>  document.querySelectorAll('#logo-slot-1, #logo-slot-2').forEach(el => { el.appendChild(document.getElementById('logo-mark').content.cloneNode(true)); }); function showView(name) { document.querySelectorAll('.view').forEach(v => v.classList.remove('active')); document.getElementById('view-' + name).classList.add('active'); document.getElementById('sidebar').classList.toggle('hidden', name === 'home'); document.getElementById('sidebar').classList.toggle('flex', name !== 'home'); document.getElementById('nav-activity').className = 'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition ' + (name === 'activity' ? 'bg-[#2FA66A]/15 text-[#6BDC9B] font-medium' : 'text-[#BDCABE] hover:bg-white/5'); } function showConfirm() { document.getElementById('confirm-modal').classList.remove('hidden'); document.getElementById('confirm-modal').classList.add('flex'); } function hideConfirm() { document.getElementById('confirm-modal').classList.add('hidden'); document.getElementById('confirm-modal').classList.remove('flex'); } function openSettings() { document.getElementById('settings-modal').classList.remove('hidden'); document.getElementById('settings-modal').classList.add('flex'); settingsTab('providers'); } function closeSettings() { document.getElementById('settings-modal').classList.add('hidden'); document.getElementById('settings-modal').classList.remove('flex'); } function settingsTab(name) { document.querySelectorAll('.settings-panel').forEach(p => p.classList.add('hidden')); document.getElementById('panel-' + name).classList.remove('hidden'); document.querySelectorAll('.settings-tab').forEach(t => t.className = 'settings-tab flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm cursor-pointer text-[#BDCABE] hover:bg-white/5'); document.getElementById('tab-' + name).className = 'settings-tab flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm cursor-pointer bg-[#2FA66A]/15 text-[#6BDC9B] font-medium'; }</script>
+</body>
+
+</html>

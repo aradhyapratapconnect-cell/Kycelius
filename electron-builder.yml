@@ -1,0 +1,66 @@
+appId: com.kyclius.app
+productName: Kyclius
+copyright: Copyright © 2025 Kyclius Contributors
+directories:
+  output: dist-electron
+  buildResources: build
+files:
+  - dist/**/*
+  - vendor/**
+  - '!**/*.map'
+  - '!**/*.ts'
+  - '!**/*.tsx'
+asar: true
+# vendored whisper.cpp sits outside dist so intact. Native/binary payloads must
+# be real files on disk: child processes can't spawn from inside an asar, and
+# native addons load from app.asar.unpacked automatically once unpacked.
+asarUnpack:
+  - vendor/**
+  - node_modules/better-sqlite3/**/*
+  - node_modules/onnxruntime-node/**/*
+compression: maximum
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+        - arm64
+  icon: build/icon.ico
+  signAndEditExecutable: false
+  sign: false
+mac:
+  target:
+    - target: dmg
+      arch:
+        - x64
+        - arm64
+  icon: build/icon.icns
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  sign: false
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
+linux:
+  target:
+    - target: AppImage
+      arch:
+        - x64
+        - arm64
+    - target: deb
+      arch:
+        - x64
+        - arm64
+  icon: build/icon.png
+  category: Utility
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: Kyclius
+  uninstallDisplayName: Kyclius
+  license: LICENSE
+publish:
+  provider: github
+  owner: kyclius
+  repo: kyclius

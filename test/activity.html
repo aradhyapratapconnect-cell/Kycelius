@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Kycelius - Activity &amp; Dashboard Overlay</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-container-highest": "#323633",
+                        "primary-container": "#2fa66a",
+                        "on-primary-fixed-variant": "#00522f",
+                        "on-background": "#e0e3df",
+                        "inverse-primary": "#006d40",
+                        "on-secondary-fixed": "#001f2a",
+                        "surface-tint": "#6bdc9b",
+                        "secondary-fixed-dim": "#8bcff0",
+                        "on-primary-fixed": "#002110",
+                        "on-secondary": "#003547",
+                        "secondary": "#8bcff0",
+                        "outline-variant": "#3e4a41",
+                        "primary-fixed": "#88f9b5",
+                        "surface-container": "#1c201e",
+                        "tertiary": "#82d8a6",
+                        "secondary-fixed": "#bfe9ff",
+                        "inverse-surface": "#e0e3df",
+                        "outline": "#879489",
+                        "error": "#ffb4ab",
+                        "tertiary-fixed-dim": "#82d8a6",
+                        "primary-fixed-dim": "#6bdc9b",
+                        "on-tertiary-fixed-variant": "#005232",
+                        "secondary-container": "#005f7b",
+                        "surface-container-low": "#181c1a",
+                        "on-tertiary-fixed": "#002111",
+                        "on-surface-variant": "#bdcabe",
+                        "surface-container-lowest": "#0b0f0d",
+                        "on-primary": "#00391f",
+                        "on-error": "#690005",
+                        "on-tertiary-container": "#00331d",
+                        "error-container": "#93000a",
+                        "tertiary-container": "#4ea375",
+                        "surface-container-high": "#272b29",
+                        "on-primary-container": "#00331b",
+                        "on-error-container": "#ffdad6",
+                        "on-tertiary": "#003921",
+                        "surface": "#101412",
+                        "on-secondary-fixed-variant": "#004d65",
+                        "on-surface": "#e0e3df",
+                        "surface-bright": "#363a38",
+                        "primary": "#6bdc9b",
+                        "background": "#101412",
+                        "inverse-on-surface": "#2d312f",
+                        "tertiary-fixed": "#9ef5c1",
+                        "surface-variant": "#323633",
+                        "surface-dim": "#101412",
+                        "on-secondary-container": "#92d6f7"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px",
+                        "card": "24px"
+                    },
+                    "spacing": {
+                        "stack-sm": "12px",
+                        "stack-lg": "48px",
+                        "base": "8px",
+                        "stack-md": "24px",
+                        "container-padding": "32px",
+                        "gutter": "24px"
+                    },
+                    "fontFamily": {
+                        "headline-lg": ["Geist"],
+                        "headline-lg-mobile": ["Geist"],
+                        "display-lg": ["Geist"],
+                        "label-sm": ["Geist"],
+                        "body-lg": ["Geist"],
+                        "body-md": ["Geist"]
+                    },
+                    "fontSize": {
+                        "headline-lg": ["32px", { "lineHeight": "1.2", "letterSpacing": "-0.01em", "fontWeight": "500" }],
+                        "headline-lg-mobile": ["28px", { "lineHeight": "1.2", "fontWeight": "500" }],
+                        "display-lg": ["48px", { "lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+                        "label-sm": ["12px", { "lineHeight": "1", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "body-lg": ["18px", { "lineHeight": "1.6", "fontWeight": "400" }],
+                        "body-md": ["16px", { "lineHeight": "1.5", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Geist', sans-serif;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: theme('colors.background');
+        }
+        
+        .bg-scenery {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDt4n_fFgJZisvghVGCEG21jbUXWMacldwpnzOUtcXrZwtKs4II5FI-s_KWsQMZucaZU1nEMoEawqDV-n5TwnBnCuwyiiH_7dvuVTvMngHmeuuKgPBTZM3rVHv5ZSr18aoOV347TnwzHwI8l1jflVDhR3tHbrQQghZqGMIBp_4B82XFfe2BA13-Vmlf-H6zqBQay-cylEhXN8M5S1-36_zuSugM3Rk-NwG7O4BG5dmKOsRbf6PVXWNsILIH2JGFCNgXB5Q');
+            background-size: cover;
+            background-position: center;
+            z-index: 0;
+        }
+
+        .glass-panel {
+            background-color: theme('colors.surface');
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid theme('colors.outline-variant');
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        .glass-card {
+            background-color: rgba(16, 20, 18, 0.6);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-top: 1px solid theme('colors.outline-variant');
+            border-left: 1px solid theme('colors.outline-variant');
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .glass-card:hover {
+            backdrop-filter: blur(25px);
+            background-color: rgba(16, 20, 18, 0.8);
+            border-color: theme('colors.secondary');
+        }
+
+        .status-chip {
+            background-color: rgba(139, 207, 240, 0.15); /* secondary with opacity */
+            border: 1px solid theme('colors.secondary');
+        }
+
+        .list-row {
+            border-bottom: 1px solid rgba(139, 207, 240, 0.1); /* secondary with low opacity */
+            transition: background-color 0.2s ease;
+        }
+
+        .list-row:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+
+        /* Ambient glowing effects */
+        .ambient-glow {
+            position: absolute;
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, theme('colors.primary') 0%, transparent 70%);
+            opacity: 0.1;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 1;
+        }
+    </style>
+</head>
+<body class="text-on-surface antialiased h-screen flex relative selection:bg-primary selection:text-on-primary">
+<!-- Scenery Background (Level 0) -->
+<div class="bg-scenery"></div>
+<!-- Ambient glows -->
+<div class="ambient-glow top-0 left-0 -translate-x-1/2 -translate-y-1/2"></div>
+<div class="ambient-glow bottom-0 right-0 translate-x-1/3 translate-y-1/3 bg-[radial-gradient(circle,theme('colors.secondary')_0%,transparent_70%)]"></div>
+<!-- SideNavBar (Level 1) -->
+<nav class="fixed left-0 top-0 h-full z-40 hidden md:flex flex-col p-stack-md bg-surface/60 backdrop-blur-[20px] border-r border-outline-variant/10 shadow-[0_20px_40px_rgba(0,0,0,0.4)] w-72 rounded-r-xl">
+<div class="flex items-center gap-4 mb-stack-lg">
+<div class="w-12 h-12 rounded-full bg-primary-container/20 flex items-center justify-center border border-primary/30 shrink-0 overflow-hidden relative">
+<img alt="Kycelius AI Avatar" class="w-full h-full object-cover opacity-80" data-alt="A macro shot of a sleek, dark obsidian sphere with swirling iridescent green and blue patterns inside, representing an advanced AI core. High-tech, minimalist, organic shapes, dark background, cinematic lighting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBRvHf6Zh2IFpT3TUo30rDjmUD-Dvzi37JPbxx7R6L-vmjYIMStWFfMVp0Oy5Kp1wZvyrz__BPDkKneBVPn6Kchg4jzoDmnwfxT5vDtvhKM_Wo0qvIkmXVfsJP5foW2XJ1xOAotSf6yqwecG0htHVRbYnZ0kSl8BQfsabPcEaOJ2Suw6oU8UCOZ-SQ18PZC1qXrN7gjlBjHS77CnYo4sM7QPUpKnWhZ19wc7DpfaDzoAZjJWeeKpYeWxg"/>
+<div class="absolute inset-0 bg-gradient-to-tr from-primary/20 to-transparent"></div>
+</div>
+<div>
+<h1 class="font-headline-lg text-headline-lg text-primary tracking-tight">Kycelius</h1>
+<p class="font-body-md text-body-md text-on-surface-variant">Digital Sanctuary</p>
+</div>
+</div>
+<button class="w-full py-3 mb-8 bg-primary-container text-on-primary-container rounded-lg font-label-sm text-label-sm uppercase tracking-wider flex items-center justify-center gap-2 hover:bg-primary-container/80 transition-colors shadow-lg shadow-primary-container/20">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">add</span>
+            New Session
+        </button>
+<div class="flex flex-col gap-2 flex-grow">
+<!-- Nav Items -->
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-container-highest/30 transition-colors scale-95 active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined">chat_bubble</span>
+<span class="font-body-md text-body-md">Conversations</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 bg-primary-container text-on-primary-container rounded-lg font-bold shadow-lg shadow-primary-container/10" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">switch_account</span>
+<span class="font-body-md text-body-md">Activity</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-container-highest/30 transition-colors scale-95 active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined">database</span>
+<span class="font-body-md text-body-md">Memory</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-container-highest/30 transition-colors scale-95 active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-body-md text-body-md">Dashboard</span>
+</a>
+</div>
+<div class="mt-auto">
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-container-highest/30 transition-colors scale-95 active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-body-md text-body-md">Settings</span>
+</a>
+</div>
+</nav>
+<!-- TopNavBar (Mobile Only) -->
+<nav class="md:hidden fixed top-0 left-0 w-full z-50 flex justify-between items-center px-container-padding py-base bg-transparent no-border bg-transparent transition-all duration-300 ease-in-out hover:backdrop-blur-xl hover:bg-surface-variant/20">
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile text-primary tracking-tight">Kycelius</h1>
+<div class="flex gap-4">
+<button class="text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined">settings</span>
+</button>
+<button class="text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined">history</span>
+</button>
+</div>
+</nav>
+<!-- Main Content Canvas -->
+<main class="flex-1 ml-0 md:ml-72 p-container-padding md:p-10 pt-24 md:pt-10 z-10 relative h-full overflow-y-auto">
+<div class="max-w-6xl mx-auto flex flex-col gap-8 h-full">
+<!-- Header Section -->
+<header class="flex justify-between items-end mb-4">
+<div>
+<h2 class="font-display-lg text-display-lg text-on-surface mb-2">Activity Overview</h2>
+<p class="font-body-lg text-body-lg text-on-surface-variant">Monitoring system operations and recent tasks.</p>
+</div>
+<div class="status-chip px-4 py-1.5 rounded-full flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-primary shadow-[0_0_8px_theme('colors.primary')]"></span>
+<span class="font-label-sm text-label-sm text-secondary uppercase">System Nominal</span>
+</div>
+</header>
+<!-- Dashboard Bento Grid -->
+<section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+<!-- Card 1 -->
+<div class="glass-card rounded-[24px] p-6 flex flex-col gap-4">
+<div class="flex justify-between items-start">
+<div class="w-10 h-10 rounded-lg bg-primary-container/20 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">chat</span>
+</div>
+<span class="font-label-sm text-label-sm text-tertiary flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">trending_up</span> +12%</span>
+</div>
+<div>
+<p class="font-body-md text-body-md text-on-surface-variant mb-1">Conversations</p>
+<p class="font-headline-lg text-headline-lg text-on-surface">1,432</p>
+</div>
+</div>
+<!-- Card 2 -->
+<div class="glass-card rounded-[24px] p-6 flex flex-col gap-4">
+<div class="flex justify-between items-start">
+<div class="w-10 h-10 rounded-lg bg-secondary-container/20 flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined">build</span>
+</div>
+<span class="font-label-sm text-label-sm text-tertiary flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">trending_up</span> +5%</span>
+</div>
+<div>
+<p class="font-body-md text-body-md text-on-surface-variant mb-1">Tool Usage</p>
+<p class="font-headline-lg text-headline-lg text-on-surface">856</p>
+</div>
+</div>
+<!-- Card 3 -->
+<div class="glass-card rounded-[24px] p-6 flex flex-col gap-4">
+<div class="flex justify-between items-start">
+<div class="w-10 h-10 rounded-lg bg-tertiary-container/20 flex items-center justify-center text-tertiary">
+<span class="material-symbols-outlined">task_alt</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">remove</span> 0%</span>
+</div>
+<div>
+<p class="font-body-md text-body-md text-on-surface-variant mb-1">Successful Actions</p>
+<p class="font-headline-lg text-headline-lg text-on-surface">99.8%</p>
+</div>
+</div>
+<!-- Card 4 -->
+<div class="glass-card rounded-[24px] p-6 flex flex-col gap-4">
+<div class="flex justify-between items-start">
+<div class="w-10 h-10 rounded-lg bg-surface-variant/50 flex items-center justify-center text-on-surface">
+<span class="material-symbols-outlined">schedule</span>
+</div>
+</div>
+<div>
+<p class="font-body-md text-body-md text-on-surface-variant mb-1">Recent Activity</p>
+<p class="font-headline-lg text-headline-lg text-on-surface">45m ago</p>
+</div>
+</div>
+</section>
+<!-- Activity List -->
+<section class="glass-panel rounded-[24px] p-8 flex-1 flex flex-col min-h-0">
+<h3 class="font-headline-lg text-headline-lg text-on-surface mb-6 flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">list_alt</span>
+                    Recent Activity Log
+                </h3>
+<div class="overflow-y-auto pr-2 flex-1 flex flex-col gap-2">
+<!-- Row 1 -->
+<div class="list-row py-4 px-2 flex items-center gap-4 cursor-pointer">
+<div class="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary shrink-0">
+<span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+<div class="flex-1">
+<p class="font-body-md text-body-md text-on-surface">Opened Chrome</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant">System Process</p>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">10:42 AM</span>
+</div>
+<!-- Row 2 -->
+<div class="list-row py-4 px-2 flex items-center gap-4 cursor-pointer">
+<div class="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary shrink-0">
+<span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+<div class="flex-1">
+<p class="font-body-md text-body-md text-on-surface">Created file <span class="text-secondary">quarterly_report.md</span></p>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Workspace</p>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">10:15 AM</span>
+</div>
+<!-- Row 3 (Action Required) -->
+<div class="list-row py-4 px-2 flex items-center gap-4 cursor-pointer bg-secondary-container/10 rounded-lg border-l-2 border-secondary">
+<div class="w-8 h-8 rounded-full bg-secondary/20 flex items-center justify-center text-secondary shrink-0 relative">
+<span class="material-symbols-outlined text-[18px]">pending_actions</span>
+<span class="absolute top-0 right-0 w-2 h-2 rounded-full bg-secondary shadow-[0_0_4px_theme('colors.secondary')]"></span>
+</div>
+<div class="flex-1">
+<p class="font-body-md text-body-md text-on-surface">Awaiting confirmation: Send email</p>
+<p class="font-label-sm text-label-sm text-secondary">Action Required</p>
+</div>
+<span class="font-label-sm text-label-sm text-secondary font-bold">Now</span>
+</div>
+<!-- Row 4 -->
+<div class="list-row py-4 px-2 flex items-center gap-4 cursor-pointer">
+<div class="w-8 h-8 rounded-full bg-surface-variant flex items-center justify-center text-on-surface-variant shrink-0">
+<span class="material-symbols-outlined text-[18px]">search</span>
+</div>
+<div class="flex-1">
+<p class="font-body-md text-body-md text-on-surface">Searched knowledge base for "design system guidelines"</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Query</p>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">09:30 AM</span>
+</div>
+</div>
+</section>
+</div>
+</main>
+<!-- Confirmation Modal Overlay (Level 2) -->
+<div class="fixed inset-0 z-[100] flex items-center justify-center bg-background/50 backdrop-blur-md">
+<div class="glass-panel w-full max-w-md rounded-[24px] p-8 relative overflow-hidden transform scale-100 transition-transform duration-300">
+<!-- Modal decorative glow -->
+<div class="absolute -top-20 -right-20 w-40 h-40 bg-secondary opacity-20 rounded-full blur-3xl pointer-events-none"></div>
+<div class="flex flex-col items-center text-center gap-6">
+<div class="w-16 h-16 rounded-full bg-secondary/10 flex items-center justify-center text-secondary border border-secondary/30 mb-2 shadow-[0_0_20px_rgba(139,207,240,0.2)]">
+<span class="material-symbols-outlined text-[32px]">mail</span>
+</div>
+<div>
+<h3 class="font-headline-lg text-headline-lg text-on-surface mb-2">Kycelius wants to act</h3>
+<p class="font-body-lg text-body-lg text-on-surface-variant">Send this email to <strong class="text-secondary font-medium">John</strong>?</p>
+</div>
+<div class="w-full bg-surface-container-highest/50 rounded-lg p-4 text-left border border-outline-variant/30 text-on-surface-variant font-body-md text-body-md italic mt-2">
+                    "Hi John, I've attached the latest design assets as requested. Let me know if you need anything else..."
+                </div>
+<div class="w-full grid grid-cols-2 gap-3 mt-4">
+<button class="col-span-2 py-3 px-4 rounded-lg bg-primary text-on-primary font-label-sm text-label-sm uppercase tracking-wider hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20 flex justify-center items-center gap-2">
+<span class="material-symbols-outlined text-[16px]">done</span>
+                        Allow Once
+                    </button>
+<button class="py-3 px-4 rounded-lg border border-secondary text-secondary font-label-sm text-label-sm uppercase tracking-wider hover:bg-secondary/10 transition-colors flex justify-center items-center gap-2">
+<span class="material-symbols-outlined text-[16px]">all_inclusive</span>
+                        Always Allow
+                    </button>
+<button class="py-3 px-4 rounded-lg bg-surface-variant text-on-surface-variant font-label-sm text-label-sm uppercase tracking-wider hover:bg-surface-variant/80 transition-colors">
+                        Cancel
+                    </button>
+</div>
+</div>
+</div>
+</div>
+<!-- BottomNavBar (Mobile Only) -->
+<nav class="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex justify-around items-center w-full max-w-md px-6 py-3 bg-surface/40 backdrop-blur-[20px] border border-outline-variant/20 shadow-2xl rounded-full transition-all duration-500 ease-out mx-auto w-[90%]">
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:brightness-125" href="#">
+<span class="material-symbols-outlined">forum</span>
+<span class="font-label-sm text-label-sm mt-1">Chat</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:brightness-125" href="#">
+<span class="material-symbols-outlined">psychology</span>
+<span class="font-label-sm text-label-sm mt-1">Memory</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-secondary-container text-on-secondary-container rounded-full p-2 w-12 h-12 hover:brightness-125" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">history</span>
+<span class="font-label-sm text-label-sm mt-1 sr-only">Activity</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:brightness-125" href="#">
+<span class="material-symbols-outlined">grid_view</span>
+<span class="font-label-sm text-label-sm mt-1">Dash</span>
+</a>
+</nav>
+</body></html>

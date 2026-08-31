@@ -1,0 +1,1 @@
+export { DashboardView, default } from './DashboardPanel';

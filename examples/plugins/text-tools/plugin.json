@@ -1,0 +1,11 @@
+{
+  "id": "com.kyclius.texttools",
+  "name": "Text Tools",
+  "version": "1.0.0",
+  "author": "Kyclius Sample",
+  "description": "A sample third-party plugin demonstrating the Kyclius plugin SDK. Adds pure in-memory text utilities with no OS, file, or network access.",
+  "entry": "index.js",
+  "capabilities": [
+    { "kind": "other", "detail": "Pure in-memory computation: no OS, file, or network access." }
+  ]
+}

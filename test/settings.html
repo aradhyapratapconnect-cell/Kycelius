@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Kycelius Settings</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-container-highest": "#323633",
+                        "primary-container": "#2fa66a",
+                        "on-primary-fixed-variant": "#00522f",
+                        "on-background": "#e0e3df",
+                        "inverse-primary": "#006d40",
+                        "on-secondary-fixed": "#001f2a",
+                        "surface-tint": "#6bdc9b",
+                        "secondary-fixed-dim": "#8bcff0",
+                        "on-primary-fixed": "#002110",
+                        "on-secondary": "#003547",
+                        "secondary": "#8bcff0",
+                        "outline-variant": "#3e4a41",
+                        "primary-fixed": "#88f9b5",
+                        "surface-container": "#1c201e",
+                        "tertiary": "#82d8a6",
+                        "secondary-fixed": "#bfe9ff",
+                        "inverse-surface": "#e0e3df",
+                        "outline": "#879489",
+                        "error": "#ffb4ab",
+                        "tertiary-fixed-dim": "#82d8a6",
+                        "primary-fixed-dim": "#6bdc9b",
+                        "on-tertiary-fixed-variant": "#005232",
+                        "secondary-container": "#005f7b",
+                        "surface-container-low": "#181c1a",
+                        "on-tertiary-fixed": "#002111",
+                        "on-surface-variant": "#bdcabe",
+                        "surface-container-lowest": "#0b0f0d",
+                        "on-primary": "#00391f",
+                        "on-error": "#690005",
+                        "on-tertiary-container": "#00331d",
+                        "error-container": "#93000a",
+                        "tertiary-container": "#4ea375",
+                        "surface-container-high": "#272b29",
+                        "on-primary-container": "#00331b",
+                        "on-error-container": "#ffdad6",
+                        "on-tertiary": "#003921",
+                        "surface": "#101412",
+                        "on-secondary-fixed-variant": "#004d65",
+                        "on-surface": "#e0e3df",
+                        "surface-bright": "#363a38",
+                        "primary": "#6bdc9b",
+                        "background": "#101412",
+                        "inverse-on-surface": "#2d312f",
+                        "tertiary-fixed": "#9ef5c1",
+                        "surface-variant": "#323633",
+                        "surface-dim": "#101412",
+                        "on-secondary-container": "#92d6f7"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "stack-sm": "12px",
+                        "stack-lg": "48px",
+                        "base": "8px",
+                        "stack-md": "24px",
+                        "container-padding": "32px",
+                        "gutter": "24px"
+                    },
+                    "fontFamily": {
+                        "headline-lg": ["Geist"],
+                        "headline-lg-mobile": ["Geist"],
+                        "display-lg": ["Geist"],
+                        "label-sm": ["Geist"],
+                        "body-lg": ["Geist"],
+                        "body-md": ["Geist"]
+                    },
+                    "fontSize": {
+                        "headline-lg": ["32px", { "lineHeight": "1.2", "letterSpacing": "-0.01em", "fontWeight": "500" }],
+                        "headline-lg-mobile": ["28px", { "lineHeight": "1.2", "fontWeight": "500" }],
+                        "display-lg": ["48px", { "lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+                        "label-sm": ["12px", { "lineHeight": "1", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "body-lg": ["18px", { "lineHeight": "1.6", "fontWeight": "400" }],
+                        "body-md": ["16px", { "lineHeight": "1.5", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .glass-panel {
+            background: rgba(16, 20, 18, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(135, 148, 137, 0.2);
+            border-top: 1px solid rgba(135, 148, 137, 0.4);
+        }
+        .glass-card {
+            background: rgba(50, 54, 51, 0.4);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(62, 74, 65, 0.3);
+            border-top: 1px solid rgba(62, 74, 65, 0.5);
+            transition: all 0.3s ease;
+        }
+        .glass-card:hover {
+            background: rgba(50, 54, 51, 0.6);
+            border-color: rgba(139, 207, 240, 0.4);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        .glass-input {
+            background: rgba(24, 28, 26, 0.6);
+            border: 1px solid rgba(62, 74, 65, 0.5);
+            color: #e0e3df;
+            transition: all 0.3s ease;
+        }
+        .glass-input:focus {
+            outline: none;
+            border-color: #8bcff0;
+            box-shadow: 0 0 10px rgba(139, 207, 240, 0.2);
+        }
+        
+        /* Custom Scrollbar for inner content */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(135, 148, 137, 0.3);
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(135, 148, 137, 0.5);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface font-body-md h-screen w-screen overflow-hidden flex items-center justify-center relative">
+<!-- Background Layer -->
+<div class="absolute inset-0 z-0">
+<div class="w-full h-full bg-cover bg-center" data-alt="A tranquil, high-tech forest setting at twilight. The scene features dense, lush organic greenery blending seamlessly with subtle, glowing ethereal light sources that hint at advanced technology. The mood is calm, immersive, and intelligent, with deep obsidian shadows contrasting against soft bioluminescent sky blue and tertiary green highlights." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCyL8rAQaPf_uidsxMsGOrQJY03lmIvCjLePBxpNRuWDWYoNwis-EL6aQlqg6OIJ0A2U27Epfyl1iuBYQN4VHypPZlDwpACVnPL18E4TK8wWyVY3OuxdnY8GrPP8-ziVR-KL3ZibU7h_GhCXvN_Xti6QUi6w9QhrcL_l8tj5kMujniLndOvJO-xxRVJLeNQASG4K9jdR-00eTd_mqKOiuIjKu4wowSht2EFDjKbZcgx7Af4aaRRWCKH_iFhEbIwjqZtFug');"></div>
+<div class="absolute inset-0 bg-background/40 backdrop-blur-[2px]"></div>
+</div>
+<!-- Main Settings Overlay (Level 2 Floating Element) -->
+<main class="glass-panel w-full max-w-[1200px] h-[90vh] md:h-[85vh] rounded-3xl z-10 shadow-[0_20px_40px_rgba(0,0,0,0.6)] flex flex-col relative overflow-hidden mx-4 md:mx-gutter">
+<!-- Header -->
+<header class="flex-none px-8 py-6 border-b border-outline-variant/20 flex justify-between items-center relative z-20">
+<div>
+<h1 class="font-headline-lg text-headline-lg text-primary tracking-tight">Settings</h1>
+<p class="font-body-md text-body-md text-on-surface-variant mt-1">Configure your digital sanctuary.</p>
+</div>
+<button aria-label="Close Settings" class="p-2 rounded-full hover:bg-surface-variant/50 transition-colors text-on-surface-variant hover:text-on-surface group">
+<span class="material-symbols-outlined text-[28px] group-hover:rotate-90 transition-transform duration-300">close</span>
+</button>
+</header>
+<!-- Content Area: Sidebar + Main Panel -->
+<div class="flex-1 flex overflow-hidden">
+<!-- Sidebar Navigation -->
+<aside class="w-64 border-r border-outline-variant/20 flex-none overflow-y-auto py-6 px-4 hidden md:block">
+<nav class="space-y-2">
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg bg-primary-container text-on-primary-container font-bold transition-colors" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">api</span>
+                        AI Providers
+                    </a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-container-highest/30 transition-colors" href="#">
+<span class="material-symbols-outlined">memory</span>
+                        Models
+                    </a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-container-highest/30 transition-colors" href="#">
+<span class="material-symbols-outlined">record_voice_over</span>
+                        Voice
+                    </a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-container-highest/30 transition-colors" href="#">
+<span class="material-symbols-outlined">smart_toy</span>
+                        Autonomous Mode
+                    </a>
+<div class="h-px bg-outline-variant/10 my-4 mx-2"></div>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-container-highest/30 transition-colors" href="#">
+<span class="material-symbols-outlined">cable</span>
+                        Integrations
+                    </a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-container-highest/30 transition-colors" href="#">
+<span class="material-symbols-outlined">monitoring</span>
+                        Activity
+                    </a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-container-highest/30 transition-colors" href="#">
+<span class="material-symbols-outlined">shield</span>
+                        Privacy
+                    </a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-container-highest/30 transition-colors" href="#">
+<span class="material-symbols-outlined">palette</span>
+                        Appearance
+                    </a>
+</nav>
+</aside>
+<!-- Main Scrollable Content -->
+<div class="flex-1 overflow-y-auto p-6 md:p-10">
+<div class="max-w-3xl mx-auto space-y-12">
+<!-- Section: AI Providers -->
+<section class="space-y-6" id="ai-providers">
+<div class="flex items-center justify-between">
+<h2 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary">api</span>
+                                AI Providers
+                            </h2>
+<button class="bg-surface-container-highest hover:bg-surface-variant text-on-surface px-4 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2 border border-outline-variant/30">
+<span class="material-symbols-outlined text-[18px]">add</span> Add Provider
+                            </button>
+</div>
+<div class="grid grid-cols-1 gap-6">
+<!-- Groq Card -->
+<div class="glass-card rounded-2xl p-6">
+<div class="flex justify-between items-start mb-6">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-xl bg-surface-container-lowest flex items-center justify-center border border-outline-variant/30">
+<span class="material-symbols-outlined text-tertiary text-[28px]">bolt</span>
+</div>
+<div>
+<h3 class="font-body-lg text-body-lg font-semibold text-on-surface">Groq</h3>
+<p class="font-body-md text-sm text-on-surface-variant">LPU Inference Engine</p>
+</div>
+</div>
+<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-secondary/10 border border-secondary/20 text-secondary font-label-sm text-label-sm">
+<span class="w-2 h-2 rounded-full bg-secondary animate-pulse"></span>
+                                        Connected
+                                    </span>
+</div>
+<div class="space-y-4">
+<div>
+<label class="block font-label-sm text-label-sm text-on-surface-variant mb-2">API Key</label>
+<div class="relative">
+<input class="glass-input w-full rounded-lg px-4 py-3 text-sm pr-12 focus:ring-0" readonly="" type="password" value="gsk_************************************"/>
+<button class="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-secondary transition-colors">
+<span class="material-symbols-outlined text-[20px]">edit</span>
+</button>
+</div>
+</div>
+<div>
+<label class="block font-label-sm text-label-sm text-on-surface-variant mb-2">Default Model</label>
+<select class="glass-input w-full rounded-lg px-4 py-3 text-sm appearance-none focus:ring-0">
+<option>llama3-70b-8192</option>
+<option>llama3-8b-8192</option>
+<option>mixtral-8x7b-32768</option>
+</select>
+</div>
+</div>
+<div class="mt-6 pt-6 border-t border-outline-variant/20 flex justify-end">
+<button class="bg-primary hover:bg-primary-fixed text-on-primary font-body-md text-sm font-semibold px-6 py-2.5 rounded-lg transition-colors">
+                                        Test Connection
+                                    </button>
+</div>
+</div>
+<!-- OpenRouter Card -->
+<div class="glass-card rounded-2xl p-6">
+<div class="flex justify-between items-start mb-6">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-xl bg-surface-container-lowest flex items-center justify-center border border-outline-variant/30">
+<span class="material-symbols-outlined text-secondary text-[28px]">router</span>
+</div>
+<div>
+<h3 class="font-body-lg text-body-lg font-semibold text-on-surface">OpenRouter</h3>
+<p class="font-body-md text-sm text-on-surface-variant">Unified API</p>
+</div>
+</div>
+<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-secondary/10 border border-secondary/20 text-secondary font-label-sm text-label-sm">
+<span class="w-2 h-2 rounded-full bg-secondary animate-pulse"></span>
+                                        Connected
+                                    </span>
+</div>
+<div class="space-y-4">
+<div>
+<label class="block font-label-sm text-label-sm text-on-surface-variant mb-2">API Key</label>
+<div class="relative">
+<input class="glass-input w-full rounded-lg px-4 py-3 text-sm pr-12 focus:ring-0" readonly="" type="password" value="sk-or-v1-************************"/>
+<button class="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-secondary transition-colors">
+<span class="material-symbols-outlined text-[20px]">edit</span>
+</button>
+</div>
+</div>
+<div>
+<label class="block font-label-sm text-label-sm text-on-surface-variant mb-2">Default Model</label>
+<select class="glass-input w-full rounded-lg px-4 py-3 text-sm appearance-none focus:ring-0">
+<option>anthropic/claude-3-opus</option>
+<option>google/gemini-1.5-pro</option>
+<option>meta-llama/llama-3-70b-instruct</option>
+</select>
+</div>
+</div>
+<div class="mt-6 pt-6 border-t border-outline-variant/20 flex justify-end">
+<button class="bg-primary hover:bg-primary-fixed text-on-primary font-body-md text-sm font-semibold px-6 py-2.5 rounded-lg transition-colors">
+                                        Test Connection
+                                    </button>
+</div>
+</div>
+</div>
+</section>
+</div>
+</div>
+</div>
+</main>
+</body></html>

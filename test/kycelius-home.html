@@ -1,0 +1,237 @@
+<!DOCTYPE html><html class="dark" lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Kycelius - Home</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "surface-container-highest": "#323633",
+                      "primary-container": "#2fa66a",
+                      "on-primary-fixed-variant": "#00522f",
+                      "on-background": "#e0e3df",
+                      "inverse-primary": "#006d40",
+                      "on-secondary-fixed": "#001f2a",
+                      "surface-tint": "#6bdc9b",
+                      "secondary-fixed-dim": "#8bcff0",
+                      "on-primary-fixed": "#002110",
+                      "on-secondary": "#003547",
+                      "secondary": "#8bcff0",
+                      "outline-variant": "#3e4a41",
+                      "primary-fixed": "#88f9b5",
+                      "surface-container": "#1c201e",
+                      "tertiary": "#82d8a6",
+                      "secondary-fixed": "#bfe9ff",
+                      "inverse-surface": "#e0e3df",
+                      "outline": "#879489",
+                      "error": "#ffb4ab",
+                      "tertiary-fixed-dim": "#82d8a6",
+                      "primary-fixed-dim": "#6bdc9b",
+                      "on-tertiary-fixed-variant": "#005232",
+                      "secondary-container": "#005f7b",
+                      "surface-container-low": "#181c1a",
+                      "on-tertiary-fixed": "#002111",
+                      "on-surface-variant": "#bdcabe",
+                      "surface-container-lowest": "#0b0f0d",
+                      "on-primary": "#00391f",
+                      "on-error": "#690005",
+                      "on-tertiary-container": "#00331d",
+                      "error-container": "#93000a",
+                      "tertiary-container": "#4ea375",
+                      "surface-container-high": "#272b29",
+                      "on-primary-container": "#00331b",
+                      "on-error-container": "#ffdad6",
+                      "on-tertiary": "#003921",
+                      "surface": "#101412",
+                      "on-secondary-fixed-variant": "#004d65",
+                      "on-surface": "#e0e3df",
+                      "surface-bright": "#363a38",
+                      "primary": "#6bdc9b",
+                      "background": "#101412",
+                      "inverse-on-surface": "#2d312f",
+                      "tertiary-fixed": "#9ef5c1",
+                      "surface-variant": "#323633",
+                      "surface-dim": "#101412",
+                      "on-secondary-container": "#92d6f7"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "stack-sm": "12px",
+                      "stack-lg": "48px",
+                      "base": "8px",
+                      "stack-md": "24px",
+                      "container-padding": "32px",
+                      "gutter": "24px"
+              },
+              "fontFamily": {
+                      "headline-lg": [
+                              "Geist"
+                      ],
+                      "headline-lg-mobile": [
+                              "Geist"
+                      ],
+                      "display-lg": [
+                              "Geist"
+                      ],
+                      "label-sm": [
+                              "Geist"
+                      ],
+                      "body-lg": [
+                              "Geist"
+                      ],
+                      "body-md": [
+                              "Geist"
+                      ]
+              },
+              "fontSize": {
+                      "headline-lg": [
+                              "32px",
+                              {
+                                      "lineHeight": "1.2",
+                                      "letterSpacing": "-0.01em",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "headline-lg-mobile": [
+                              "28px",
+                              {
+                                      "lineHeight": "1.2",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "display-lg": [
+                              "48px",
+                              {
+                                      "lineHeight": "1.1",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "label-sm": [
+                              "12px",
+                              {
+                                      "lineHeight": "1",
+                                      "letterSpacing": "0.05em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "body-lg": [
+                              "18px",
+                              {
+                                      "lineHeight": "1.6",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "body-md": [
+                              "16px",
+                              {
+                                      "lineHeight": "1.5",
+                                      "fontWeight": "400"
+                              }
+                      ]
+              }
+      },
+          },
+        }
+      </script>
+</head>
+<body class="bg-background text-on-background overflow-hidden relative w-screen h-screen">
+<!-- Full Screen Background Image -->
+<div class="absolute inset-0 w-full h-full bg-cover bg-center bg-no-repeat -z-10" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBSCqLd5c5faj-xa-WkduX0EFxK2xjfaVo77_7K22fZnJ4d4nB-u7vwygC-Ybw-j0ZSCjYtX8h2CPrFc0i_cN1fhesvnpK5nVTbPgJ2H7yFDdoxQxR2kRWKmdJiD_n1M6LA-aomPtFSAAiR_GflDuwLShoAaAYgpFp9yO4ZiVSB2acedevNEzVrNi3-p0Ra19SFvFiGFiwK1bEchzeCTvp7cIaBtTr5M6CrkqOniaoAh0frMPQOG_mEl2sO7dnp2kE5RWE');"></div>
+<div class="absolute inset-0 bg-background/20 mix-blend-multiply -z-10"></div> <!-- Subtle darkening overlay for text legibility -->
+<!-- Top Navigation Bar (Web) -->
+<nav class="hidden md:flex fixed top-0 left-0 w-full z-50 justify-between items-center px-container-padding py-base bg-transparent transition-all duration-300 ease-in-out">
+<div class="flex items-center gap-4">
+<span class="font-headline-lg text-headline-lg text-primary tracking-tight">Kycelius</span>
+</div>
+<div class="flex items-center gap-stack-md">
+<a class="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors hover:backdrop-blur-xl hover:bg-surface-variant/20 px-3 py-2 rounded-lg" href="#">Activity</a>
+<a class="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors hover:backdrop-blur-xl hover:bg-surface-variant/20 px-3 py-2 rounded-lg" href="#">Memory</a>
+<a class="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors hover:backdrop-blur-xl hover:bg-surface-variant/20 px-3 py-2 rounded-lg" href="#">Dashboard</a>
+<div class="flex items-center gap-2 ml-4">
+<button class="text-on-surface-variant hover:text-primary p-2 rounded-full hover:backdrop-blur-xl hover:bg-surface-variant/20 transition-all duration-300 ease-in-out">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+</button>
+<button class="text-on-surface-variant hover:text-primary p-2 rounded-full hover:backdrop-blur-xl hover:bg-surface-variant/20 transition-all duration-300 ease-in-out">
+<span class="material-symbols-outlined" data-icon="history">history</span>
+</button>
+</div>
+</div>
+</nav>
+<!-- Top Navigation Bar (Mobile) -->
+<nav class="md:hidden fixed top-0 left-0 w-full z-50 flex justify-between items-center px-container-padding py-base bg-transparent transition-all duration-300 ease-in-out">
+<span class="font-headline-lg-mobile text-headline-lg-mobile text-primary tracking-tight">Kycelius</span>
+<div class="flex items-center gap-2">
+<button class="text-on-surface-variant hover:text-primary p-2 rounded-full hover:backdrop-blur-xl hover:bg-surface-variant/20 transition-all duration-300 ease-in-out">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+</button>
+<button class="text-on-surface-variant hover:text-primary p-2 rounded-full hover:backdrop-blur-xl hover:bg-surface-variant/20 transition-all duration-300 ease-in-out">
+<span class="material-symbols-outlined" data-icon="history">history</span>
+</button>
+</div>
+</nav>
+<!-- 3D AI Blob Animation Container -->
+
+<!-- Main Content Area / Chat Panel -->
+<main class="absolute bottom-stack-lg left-1/2 -translate-x-1/2 w-full max-w-3xl px-container-padding z-20">
+<!-- Welcome Message (Optional, adds context before interacting) -->
+<div class="mb-stack-md text-center opacity-80 mix-blend-plus-lighter">
+<h1 class="font-display-lg text-display-lg text-primary-fixed drop-shadow-md">Hello.</h1>
+<p class="font-body-lg text-body-lg text-secondary-fixed mt-base">The forest is quiet today.</p>
+</div>
+<!-- Glassmorphism Chat Input Capsule -->
+<div class="bg-surface/30 backdrop-blur-[20px] border border-[#355044] rounded-[24px] shadow-[0_20px_40px_rgba(0,0,0,0.4)] p-4 flex items-center gap-4 transition-all duration-300 focus-within:bg-surface/40 focus-within:border-secondary focus-within:shadow-[0_0_20px_rgba(139,207,240,0.2)]">
+<button class="p-2 rounded-full bg-surface-container/50 text-secondary hover:bg-surface-variant transition-colors group">
+<span class="material-symbols-outlined group-hover:scale-110 transition-transform" data-icon="mic" data-weight="fill" style="font-variation-settings: 'FILL' 1;">mic</span>
+</button>
+<input class="flex-1 bg-transparent border-none text-on-surface font-body-lg text-body-lg placeholder-on-surface-variant focus:ring-0 px-2 outline-none" placeholder="Ask Kycelius to do something..." type="text">
+<button class="p-3 rounded-full bg-primary-container text-on-primary-container hover:brightness-110 shadow-lg transition-all active:scale-95 flex items-center justify-center group">
+<span class="material-symbols-outlined group-hover:translate-x-1 transition-transform" data-icon="send" data-weight="fill" style="font-variation-settings: 'FILL' 1;">send</span>
+</button>
+</div>
+<!-- Quick Action Chips -->
+<div class="flex gap-3 justify-center mt-stack-md flex-wrap">
+<button class="px-4 py-2 rounded-full bg-secondary/10 backdrop-blur-md border border-secondary/20 text-secondary font-label-sm text-label-sm hover:bg-secondary/20 transition-colors">
+                Scan Environment
+             </button>
+<button class="px-4 py-2 rounded-full bg-secondary/10 backdrop-blur-md border border-secondary/20 text-secondary font-label-sm text-label-sm hover:bg-secondary/20 transition-colors">
+                Review Logs
+             </button>
+<button class="px-4 py-2 rounded-full bg-secondary/10 backdrop-blur-md border border-secondary/20 text-secondary font-label-sm text-label-sm hover:bg-secondary/20 transition-colors">
+                System Status
+             </button>
+</div>
+</main>
+<!-- Bottom Navigation Bar (Mobile only) -->
+<nav class="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex justify-around items-center w-[90%] max-w-md px-6 py-3 bg-surface/40 backdrop-blur-[20px] rounded-full border border-outline-variant/20 shadow-2xl transition-all duration-500 ease-out">
+<a class="flex flex-col items-center justify-center bg-secondary-container text-on-secondary-container rounded-full p-2 w-12 h-12 hover:brightness-125" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="forum" data-weight="fill" style="font-variation-settings: 'FILL' 1;">forum</span>
+<span class="font-label-sm text-label-sm mt-1 hidden">Chat</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:brightness-125 p-2 w-12 h-12" href="#">
+<span class="material-symbols-outlined text-[24px]" data-icon="psychology">psychology</span>
+<span class="font-label-sm text-label-sm mt-1 hidden">Memory</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:brightness-125 p-2 w-12 h-12" href="#">
+<span class="material-symbols-outlined text-[24px]" data-icon="history">history</span>
+<span class="font-label-sm text-label-sm mt-1 hidden">Activity</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:brightness-125 p-2 w-12 h-12" href="#">
+<span class="material-symbols-outlined text-[24px]" data-icon="grid_view">grid_view</span>
+<span class="font-label-sm text-label-sm mt-1 hidden">Dash</span>
+</a>
+</nav>
+
+
+</body></html>

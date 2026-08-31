@@ -1,0 +1,148 @@
+/* Font imports */
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Base styles — dark theme (matches the reference mockups) */
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Geist', sans-serif;
+  color: #e0e3df;
+  background-color: #101412;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Scrollbar styling — dark */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #101412;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #3e4a41;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #6bdc9b;
+}
+
+/* Selection styling — primary with on-primary */
+::selection {
+  background-color: #6bdc9b;
+  color: #00391f;
+}
+
+/* Focus visible for accessibility */
+:focus-visible {
+  outline: 2px solid #8bcff0;
+  outline-offset: 2px;
+}
+
+/* Utility classes */
+.font-heading {
+  font-family: 'Geist', sans-serif;
+}
+
+.font-body {
+  font-family: 'Geist', sans-serif;
+}
+
+.font-mono {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Animation utilities */
+@keyframes pulse-soft {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.animate-pulse-soft {
+  animation: pulse-soft 2s ease-in-out infinite;
+}
+
+/* Soft breathing border shimmer while the assistant is thinking (spec §6) */
+@keyframes breathe {
+  0%,
+  100% {
+    filter: brightness(1);
+    box-shadow: 0 0 0 0 rgba(139, 207, 240, 0.2);
+  }
+  50% {
+    filter: brightness(1.04);
+    box-shadow: 0 0 18px 2px rgba(139, 207, 240, 0.35);
+  }
+}
+
+.animate-breathe {
+  animation: breathe 2.4s ease-in-out infinite;
+}
+
+/* Audio-reactive waveform bars inside the mic button while listening */
+@keyframes soundbar {
+  0%,
+  100% {
+    height: 4px;
+  }
+  50% {
+    height: 16px;
+  }
+}
+
+.animate-soundbar {
+  animation: soundbar 0.9s ease-in-out infinite;
+}
+
+/* Glass morphism — dark (surface glass over the scenery) */
+.glass {
+  background: rgba(16, 20, 18, 0.6);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.glass-dark {
+  background: rgba(16, 20, 18, 0.8);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+/* Confirmation dialog entrance animation */
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.animate-dialog-in {
+  animation: dialog-in 0.2s ease-out;
+}
