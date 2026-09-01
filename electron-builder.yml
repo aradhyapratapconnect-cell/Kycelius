@@ -40,6 +40,8 @@ mac:
   sign: false
   entitlements: build/entitlements.mac.plist
   entitlementsInherit: build/entitlements.mac.plist
+  extendInfo:
+    NSMicrophoneUsageDescription: 'Kyclius needs microphone access to listen to your voice commands.'
 linux:
   target:
     - target: AppImage

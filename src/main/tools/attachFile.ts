@@ -1,7 +1,9 @@
+
 import { registerTool } from './toolRegistry';
 import { attachments } from '../db/db';
 import { readFileSync, statSync, readdirSync } from 'fs';
 import { join, extname, basename } from 'path';
+import { extractFile } from '../files/extract';
 
 interface AttachFileParams {
   path: string;
@@ -132,14 +134,14 @@ registerTool({
         contentForContext = result.files.map(f => `=== ${f.path} ===\n${f.content}`).join('\n\n');
       }
     } else {
-      const ext = extname(displayName).toLowerCase();
-      const textExtensions = ['.txt', '.md', '.js', '.ts', '.jsx', '.tsx', '.json', '.html', '.css', '.py', '.rs', '.go', '.java', '.cpp', '.c', '.h', '.yaml', '.yml', '.toml', '.ini', '.cfg', '.conf', '.sh', '.bat', '.ps1', '.sql', '.xml', '.csv', '.log'];
-      if (textExtensions.includes(ext) || ext === '') {
-        const content = readTextFile(path);
-        contentForContext = content;
-        contentSummary = buildSummary('file', displayName, sizeBytes);
+      const extracted = extractFile(path);
+      if (extracted.failed) {
+        contentSummary = `File: ${displayName} (${Math.round(sizeBytes / 1024)} KB) — failed to extract: ${extracted.content}`;
+      } else if (extracted.kind === 'note') {
+        contentSummary = `Binary file: ${displayName} (${Math.round(sizeBytes / 1024)} KB) — ${extracted.content}`;
       } else {
-        contentSummary = `Binary file: ${displayName} (${Math.round(sizeBytes / 1024)} KB) — content not included in context`;
+        contentForContext = extracted.content;
+        contentSummary = buildSummary('file', displayName, sizeBytes);
       }
     }
 

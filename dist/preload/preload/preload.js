@@ -15,6 +15,9 @@ electron_1.contextBridge.exposeInMainWorld('kyclius', {
     searchDashboardEntries: (query) => electron_1.ipcRenderer.invoke('kyclius:search-dashboard-entries', query),
     // Dashboard stats (T-22)
     getDashboardStats: () => electron_1.ipcRenderer.invoke('kyclius:get-dashboard-stats'),
+    // File methods
+    getPathForFile: (file) => electron_1.webUtils.getPathForFile(file),
+    showOpenDialog: () => electron_1.ipcRenderer.invoke('kyclius:show-open-dialog'),
     // Voice methods (F-07)
     startListening: () => electron_1.ipcRenderer.invoke('kyclius:start-listening'),
     stopListening: () => electron_1.ipcRenderer.invoke('kyclius:stop-listening'),

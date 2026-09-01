@@ -18,6 +18,7 @@ import { registerAutonomousHandlers } from './ipc/autonomous.handlers';
 import { registerSyncHandlers } from './ipc/sync.handlers';
 import { registerAgentHandlers } from './ipc/agent.handlers';
 import { registerPluginHandlers } from './ipc/plugin.handlers';
+import { registerFileHandlers } from './ipc/file.handlers';
 import { reloadAllPlugins, shutdownPlugins } from './plugins/pluginManager';
 // N-05: scheduled/triggered tasks.
 import { registerSchedulerHandlers } from './ipc/scheduler.handlers';
@@ -87,6 +88,7 @@ registerSyncHandlers();
 registerAgentHandlers();
 // N-03: third-party plugins (sandboxed tool registry extensions).
 registerPluginHandlers();
+registerFileHandlers();
 // N-05: scheduled/triggered tasks (view/edit/delete over IPC).
 registerSchedulerHandlers();
 

@@ -83,22 +83,18 @@ export function CommandBar() {
     isListeningRef.current = false;
   }, []);
 
-  // Attach file/folder via "+" button or drag-and-drop
+  // Attach file/folder via native dialog or drag-and-drop
   const handleAttachFiles = useCallback(async (files: FileList) => {
     if (!window.kyclius) return;
     for (const file of Array.from(files)) {
       try {
-        // For web, we get a File object. We need to send the path to main process.
-        // Since we can't get the real path from File in the renderer, we'll use
-        // the file's name and send it as a path. The main process will need to
-        // handle this differently - for now we use a simulated path.
-        // In a real implementation, this would use the Electron drag-and-drop API
-        // which provides the real path via webUtils.getPathForFile.
+        const filePath = window.kyclius.getPathForFile(file);
         const attachment = {
           id: crypto.randomUUID(),
           name: file.name,
-          kind: file.type === '' ? 'folder' as const : 'file' as const,
+          kind: file.type === '' ? ('folder' as const) : ('file' as const),
           size: file.size,
+          path: filePath,
         };
         setAttachments(prev => [...prev, attachment]);
       } catch (err) {
@@ -131,22 +127,22 @@ export function CommandBar() {
   const handleAttachClick = useCallback(async () => {
     if (!window.kyclius) return;
     try {
-      // This would open a native file picker in the main process
-      // For now, we'll simulate by creating an input element
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.multiple = true;
-      input.webkitdirectory = true; // Allow folder selection
-      input.onchange = () => {
-        if (input.files) {
-          handleAttachFiles(input.files);
+      const paths = await window.kyclius.showOpenDialog();
+      if (paths && paths.length > 0) {
+        for (const p of paths) {
+          const attachment = {
+            id: crypto.randomUUID(),
+            name: p.split(/[/\\]/).pop() || p,
+            kind: 'file' as const,
+            path: p,
+          };
+          setAttachments(prev => [...prev, attachment]);
         }
-      };
-      input.click();
+      }
     } catch (err) {
       showFeedback(`Failed to open file picker: ${err instanceof Error ? err.message : String(err)}`);
     }
-  }, [handleAttachFiles, showFeedback]);
+  }, [showFeedback]);
 
   const handleRemoveAttachment = useCallback((id: string) => {
     setAttachments(prev => prev.filter(a => a.id !== id));
@@ -155,14 +151,24 @@ export function CommandBar() {
   // Voice + typed input converge on the same chatStore.sendMessage path.
   const submit = useCallback(
     (text: string, inputMode: 'voice' | 'text') => {
-      const trimmed = text.trim();
-      if (!trimmed) return;
+      let finalMessage = text.trim();
+      const currentAttachments = [...attachments];
+      
+      // If there are attachments, append them to the message so the LLM knows
+      // to call the attach_file tool to read them.
+      if (currentAttachments.length > 0) {
+        const paths = currentAttachments.map(a => `"${a.path}"`).join(', ');
+        const attachmentPrompt = `\n\n[User attached the following files: ${paths} — please use the attach_file tool to read them into context]`;
+        finalMessage = finalMessage ? finalMessage + attachmentPrompt : attachmentPrompt.trim();
+      }
+
+      if (!finalMessage) return;
       if (isSendingRef.current) return;
 
       setValue('');
       // Clear attachments after sending - they're handled by the attach_file tool in main
       setAttachments([]);
-      void sendMessage(trimmed, inputMode);
+      void sendMessage(finalMessage, inputMode);
 
       if (isListeningRef.current) {
         void stopListening();

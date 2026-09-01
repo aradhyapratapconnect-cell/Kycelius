@@ -16,6 +16,7 @@ const autonomous_handlers_1 = require("./ipc/autonomous.handlers");
 const sync_handlers_1 = require("./ipc/sync.handlers");
 const agent_handlers_1 = require("./ipc/agent.handlers");
 const plugin_handlers_1 = require("./ipc/plugin.handlers");
+const file_handlers_1 = require("./ipc/file.handlers");
 const pluginManager_1 = require("./plugins/pluginManager");
 // N-05: scheduled/triggered tasks.
 const scheduler_handlers_1 = require("./ipc/scheduler.handlers");
@@ -79,6 +80,7 @@ let quitting = false;
 (0, agent_handlers_1.registerAgentHandlers)();
 // N-03: third-party plugins (sandboxed tool registry extensions).
 (0, plugin_handlers_1.registerPluginHandlers)();
+(0, file_handlers_1.registerFileHandlers)();
 // N-05: scheduled/triggered tasks (view/edit/delete over IPC).
 (0, scheduler_handlers_1.registerSchedulerHandlers)();
 const createWindow = () => {

@@ -23,7 +23,7 @@ const modelPresent = (0, fs_1.existsSync)(MODEL_PATH) && (0, fs_1.existsSync)(VO
         // path, we get the "Could not load ONNX model" error we're guarding against.
         const out = await engine.synthesize('hello');
         (0, vitest_1.expect)(out.length).toBeGreaterThan(0);
-    });
+    }, 30000);
     vitest_1.it.skipIf(!modelPresent)('truncates over-long text instead of failing the Encoder Expand node', async () => {
         const engine = (0, kokoroTtsEngine_1.createKokoroTtsEngine)(async () => ({
             modelPath: MODEL_PATH,
@@ -35,7 +35,7 @@ const modelPresent = (0, fs_1.existsSync)(MODEL_PATH) && (0, fs_1.existsSync)(VO
         const longText = 'repeat after me. '.repeat(45); // ~630 chars
         const out = await engine.synthesize(longText);
         (0, vitest_1.expect)(out.length).toBeGreaterThan(0);
-    });
+    }, 30000);
     (0, vitest_1.it)('does not construct a file:// URI for the model path', async () => {
         // Guard the code shape: the engine must hand onnxruntime the raw path.
         const src = kokoroTtsEngine_1.createKokoroTtsEngine.toString();

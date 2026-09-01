@@ -1,3 +1,4 @@
+
 /**
  * Shared TypeScript types for the IPC bridge between renderer and main process.
  * These types are used by both the preload script and the renderer.
@@ -20,6 +21,9 @@ export interface KycliusAPI {
   searchDashboardEntries: (query: string) => Promise<DashboardEntry[]>;
   // Dashboard stats (T-22) — real counts from the local tables
   getDashboardStats: () => Promise<DashboardStats>;
+  // File methods
+  getPathForFile: (file: File) => string;
+  showOpenDialog: () => Promise<string[] | undefined>;
   // Voice methods (F-07)
   startListening: () => Promise<VoiceStartResult>;
   stopListening: () => Promise<void>;

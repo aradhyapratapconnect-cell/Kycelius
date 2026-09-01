@@ -9,8 +9,10 @@
  */
 
 import { attachments } from '../db/db';
-import { readFileSync, statSync, readdirSync } from 'fs';
+import { statSync, readdirSync } from 'fs';
+import { readFileSync } from 'fs';
 import { join, extname } from 'path';
+import { extractFile } from './extract';
 
 const MAX_FILE_CHARS = 50000;
 const MAX_TOTAL_CHARS = 100000;
@@ -34,6 +36,7 @@ function readTextFile(path: string): string {
     return '';
   }
 }
+
 
 function getFolderFiles(path: string, maxFiles = 50): Array<{ path: string; content: string }> {
   const files: Array<{ path: string; content: string }> = [];
@@ -97,25 +100,22 @@ export function buildAttachmentContext(conversationId: string): AttachmentContex
         
         sections.push(contentText);
       } else {
-        const ext = extname(display_name).toLowerCase();
-        const textExtensions = ['.txt', '.md', '.js', '.ts', '.jsx', '.tsx', '.json', '.html', '.css', '.py', '.rs', '.go', '.java', '.cpp', '.c', '.h', '.yaml', '.yml', '.toml', '.ini', '.cfg', '.conf', '.sh', '.bat', '.ps1', '.sql', '.xml', '.csv', '.log'];
-        if (textExtensions.includes(ext) || ext === '') {
-          const content = readTextFile(original_path);
-          if (content) {
-            const capped = content.slice(0, Math.min(MAX_FILE_CHARS, budget));
-            budget -= capped.length;
-            const sizeKB = Math.round(size_bytes / 1024);
-            let contentText = `File: ${display_name} (${sizeKB} KB)`;
-            if (capped.length < content.length) {
-              contentText += ` (truncated)`;
-            }
-            contentText += `:\n${indent(capped)}`;
-            sections.push(contentText);
-          } else {
-            sections.push(`- File ${display_name}: could not be read (empty or binary)`);
-          }
+        const extracted = extractFile(original_path, { maxBytes: budget });
+        if (extracted.failed) {
+          sections.push(`- File ${display_name}: could not be read (${extracted.content})`);
+        } else if (extracted.kind === 'note') {
+          sections.push(`- Binary file ${display_name} (${Math.round(size_bytes / 1024)} KB): ${extracted.content}`);
         } else {
-          sections.push(`- Binary file ${display_name} (${Math.round(size_bytes / 1024)} KB): content not included in context`);
+          const content = extracted.content;
+          const capped = content.slice(0, Math.min(MAX_FILE_CHARS, budget));
+          budget -= capped.length;
+          const sizeKB = Math.round(size_bytes / 1024);
+          let contentText = `File: ${display_name} (${sizeKB} KB)`;
+          if (capped.length < content.length || extracted.truncated) {
+            contentText += ` (truncated)`;
+          }
+          contentText += `:\n${indent(capped)}`;
+          sections.push(contentText);
         }
       }
     } catch (err) {

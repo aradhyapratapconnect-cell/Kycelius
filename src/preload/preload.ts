@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from 'electron';
+import { contextBridge, ipcRenderer, webUtils } from 'electron';
 import type {
   AssistantTokenPayload,
   KycliusAPI,
@@ -25,6 +25,10 @@ contextBridge.exposeInMainWorld('kyclius', {
     ipcRenderer.invoke('kyclius:search-dashboard-entries', query),
   // Dashboard stats (T-22)
   getDashboardStats: () => ipcRenderer.invoke('kyclius:get-dashboard-stats'),
+
+  // File methods
+  getPathForFile: (file: File) => webUtils.getPathForFile(file),
+  showOpenDialog: () => ipcRenderer.invoke('kyclius:show-open-dialog'),
 
   // Voice methods (F-07)
   startListening: () => ipcRenderer.invoke('kyclius:start-listening'),

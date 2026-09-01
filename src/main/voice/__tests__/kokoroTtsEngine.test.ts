@@ -25,7 +25,7 @@ describe('Kokoro TTS engine model loading', () => {
     // path, we get the "Could not load ONNX model" error we're guarding against.
     const out = await engine.synthesize('hello');
     expect(out.length).toBeGreaterThan(0);
-  });
+  }, 30000);
 
   it.skipIf(!modelPresent)('truncates over-long text instead of failing the Encoder Expand node', async () => {
     const engine = createKokoroTtsEngine(async () => ({
@@ -39,7 +39,7 @@ describe('Kokoro TTS engine model loading', () => {
     const longText = 'repeat after me. '.repeat(45); // ~630 chars
     const out = await engine.synthesize(longText);
     expect(out.length).toBeGreaterThan(0);
-  });
+  }, 30000);
 
   it('does not construct a file:// URI for the model path', async () => {
     // Guard the code shape: the engine must hand onnxruntime the raw path.

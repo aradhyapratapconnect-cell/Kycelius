@@ -5,6 +5,7 @@ const toolRegistry_1 = require("./toolRegistry");
 const db_1 = require("../db/db");
 const fs_1 = require("fs");
 const path_1 = require("path");
+const extract_1 = require("../files/extract");
 function getFileSize(path) {
     try {
         return (0, fs_1.statSync)(path).size;
@@ -126,15 +127,16 @@ function buildSummary(kind, displayName, sizeBytes, details) {
             }
         }
         else {
-            const ext = (0, path_1.extname)(displayName).toLowerCase();
-            const textExtensions = ['.txt', '.md', '.js', '.ts', '.jsx', '.tsx', '.json', '.html', '.css', '.py', '.rs', '.go', '.java', '.cpp', '.c', '.h', '.yaml', '.yml', '.toml', '.ini', '.cfg', '.conf', '.sh', '.bat', '.ps1', '.sql', '.xml', '.csv', '.log'];
-            if (textExtensions.includes(ext) || ext === '') {
-                const content = readTextFile(path);
-                contentForContext = content;
-                contentSummary = buildSummary('file', displayName, sizeBytes);
+            const extracted = (0, extract_1.extractFile)(path);
+            if (extracted.failed) {
+                contentSummary = `File: ${displayName} (${Math.round(sizeBytes / 1024)} KB) — failed to extract: ${extracted.content}`;
+            }
+            else if (extracted.kind === 'note') {
+                contentSummary = `Binary file: ${displayName} (${Math.round(sizeBytes / 1024)} KB) — ${extracted.content}`;
             }
             else {
-                contentSummary = `Binary file: ${displayName} (${Math.round(sizeBytes / 1024)} KB) — content not included in context`;
+                contentForContext = extracted.content;
+                contentSummary = buildSummary('file', displayName, sizeBytes);
             }
         }
         // Store attachment metadata
