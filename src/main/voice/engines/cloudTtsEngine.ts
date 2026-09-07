@@ -12,6 +12,19 @@
 import { decodeWav } from '../pcmWav';
 import type { TtsEngine } from './kokoroTtsEngine';
 import { appendV1Url, describeHttpError, readJson } from './cloudUtils';
+import { fetchWithTimeout, CLOUD_VOICE_TIMEOUT_MS } from '../../utils/timeouts';
+import { FISHAUDIO_PRESET_KEY } from './fishAudioTtsEngine';
+
+/**
+ * Whether a TTS provider row needs a non-empty Model/Voice ID to resolve to
+ * cloud. Fish Audio is the exception: its reference voice is optional and an
+ * empty field means the default voice — still a usable cloud config. Every
+ * other provider treats empty as "not configured" and stays local-first.
+ * Pure so the resolution gate has direct unit coverage.
+ */
+export function ttsModelRequired(presetKey: string | undefined): boolean {
+  return presetKey !== FISHAUDIO_PRESET_KEY;
+}
 
 export interface CloudTtsConfig {
   id: string;
@@ -20,6 +33,10 @@ export interface CloudTtsConfig {
   apiKey: string;
   /** Model id (or named voice) the endpoint should synthesize with. */
   model: string;
+  /** Registry preset key — lets the TTS factory pick the right API shape
+   *  (ElevenLabs / Fish Audio vs. generic OpenAI-compatible). Optional so
+   *  older callers keep working; absent means the generic shape. */
+  presetKey?: string;
 }
 
 export interface CloudTtsEngine extends TtsEngine {
@@ -38,7 +55,8 @@ export function createCloudTtsEngine(config: CloudTtsConfig): CloudTtsEngine {
     },
 
     async synthesize(text: string): Promise<Float32Array> {
-      const res = await fetch(appendV1Url(config.baseUrl, '/audio/speech'), {
+      // EF-10: enforced timeout so a hung cloud TTS socket falls back locally.
+      const res = await fetchWithTimeout(appendV1Url(config.baseUrl, '/audio/speech'), {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${config.apiKey}`,
@@ -49,6 +67,7 @@ export function createCloudTtsEngine(config: CloudTtsConfig): CloudTtsEngine {
           input: text,
           response_format: 'wav',
         }),
+        timeoutMs: CLOUD_VOICE_TIMEOUT_MS,
       });
 
       if (!res.ok) {

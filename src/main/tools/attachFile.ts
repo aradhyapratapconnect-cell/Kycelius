@@ -2,8 +2,57 @@
 import { registerTool } from './toolRegistry';
 import { attachments } from '../db/db';
 import { readFileSync, statSync, readdirSync } from 'fs';
-import { join, extname, basename } from 'path';
+import { join, extname, basename, normalize, isAbsolute } from 'path';
 import { extractFile } from '../files/extract';
+
+/**
+ * EF-11: normalize a user-supplied attachment path before any fs access.
+ * Windows evidence showed paths like `C:\Users\aradh\Downloads\random_sample.pdf`
+ * arriving with surrounding quotes (drag-drop/picker serialization) or
+ * file:/// URL wrapping — all of which made statSync fail with "Path does not
+ * exist" even though the file was fine. Normalization is shared by the picker
+ * path, the drag-and-drop path, and the LLM tool path so all three resolve
+ * identically.
+ */
+export function normalizeAttachPath(input: unknown): string {
+  if (typeof input !== 'string') return '';
+  let p = input.trim();
+  // Strip a single layer of surrounding quotes.
+  if (p.length >= 2) {
+    const first = p[0];
+    const last = p[p.length - 1];
+    if ((first === '"' && last === '"') || (first === "'" && last === "'")) {
+      p = p.slice(1, -1).trim();
+    }
+  }
+  // Unwrap file:/// URLs to plain paths.
+  if (/^file:\/\/\//i.test(p)) {
+    try {
+      p = decodeURI(new URL(p).pathname);
+      // URL pathname on Windows yields /C:/... — strip the leading slash.
+      if (/^\/[A-Za-z]:\//.test(p)) p = p.slice(1);
+    } catch {
+      // fall through with the raw string
+    }
+  }
+  if (!p) return '';
+  // Normalize separators (forward slashes work on Windows, but collapse
+  // redundant segments and trailing slashes consistently).
+  try {
+    p = normalize(p);
+  } catch {
+    // keep best-effort value
+  }
+  return p;
+}
+
+export function isAbsoluteAttachPath(p: string): boolean {
+  try {
+    return isAbsolute(p);
+  } catch {
+    return false;
+  }
+}
 
 interface AttachFileParams {
   path: string;
@@ -92,6 +141,95 @@ function buildSummary(kind: 'file' | 'folder', displayName: string, sizeBytes: n
   }
 }
 
+export interface IngestedAttachment {
+  attachmentId: string;
+  path: string;
+  displayName: string;
+  kind: 'file' | 'folder';
+  sizeBytes: number;
+  summary: string;
+  content: string;
+}
+
+/**
+ * EF-11: shared ingestion core. The "+" picker, drag-and-drop, and the LLM
+ * `attach_file` tool all funnel through here, so a Windows path that works in
+ * one path works in all of them. Returns specific errors (Step 2: surfaced at
+ * the point of attachment, not discovered later inside an LLM call).
+ */
+export async function ingestAttachment(
+  rawPath: unknown,
+  conversationId: string
+): Promise<{ success: true; attachment: IngestedAttachment } | { success: false; error: string }> {
+  const path = normalizeAttachPath(rawPath);
+
+  if (!path) {
+    return { success: false, error: 'Path is required' };
+  }
+  if (!isAbsoluteAttachPath(path)) {
+    return { success: false, error: `That path doesn't look absolute and can't be read safely: ${path}` };
+  }
+
+  let stats: ReturnType<typeof statSync>;
+  try {
+    stats = statSync(path);
+  } catch {
+    return { success: false, error: `Couldn't read that file — it doesn't exist or can't be accessed: ${path}` };
+  }
+
+  const isFolder = stats.isDirectory();
+  const kind = isFolder ? 'folder' : 'file';
+  const displayName = basename(path) || path;
+  const sizeBytes = isFolder ? getFolderSize(path) : stats.size;
+
+  // Read content for context injection
+  let contentSummary = '';
+  let contentForContext = '';
+
+  if (isFolder) {
+    const result = readFolderContents(path);
+    contentSummary = buildSummary('folder', displayName, sizeBytes, result);
+    if (result.files.length > 0) {
+      contentForContext = result.files.map(f => `=== ${f.path} ===\n${f.content}`).join('\n\n');
+    }
+  } else {
+    const extracted = extractFile(path);
+    if (extracted.failed) {
+      contentSummary = `File: ${displayName} (${Math.round(sizeBytes / 1024)} KB) — failed to extract: ${extracted.content}`;
+    } else if (extracted.kind === 'note') {
+      contentSummary = `Binary file: ${displayName} (${Math.round(sizeBytes / 1024)} KB) — ${extracted.content}`;
+    } else {
+      contentForContext = extracted.content;
+      contentSummary = buildSummary('file', displayName, sizeBytes);
+    }
+  }
+
+  // Store attachment metadata
+  const attachmentId = crypto.randomUUID();
+  await attachments.create({
+    id: attachmentId,
+    conversation_id: conversationId,
+    original_path: path,
+    display_name: displayName,
+    kind,
+    size_bytes: sizeBytes,
+    ingested_content_summary: contentSummary,
+  });
+
+  return {
+    success: true,
+    attachment: {
+      attachmentId,
+      path,
+      displayName,
+      kind,
+      sizeBytes,
+      summary: contentSummary,
+      content: contentForContext,
+    },
+  };
+}
+
 registerTool({
   name: 'attach_file',
   description: 'Read a user-provided file or folder into the current conversation context. The user explicitly provides this via drag-and-drop or the attach button. Content is read fresh from disk each time, not stored in the database.',
@@ -104,71 +242,15 @@ registerTool({
   },
   permissionTier: 'auto',
   handler: async (params: Record<string, unknown>) => {
-    const path = params.path as string;
-
-    if (!path || typeof path !== 'string') {
-      return { success: false, error: 'Path is required' };
+    const conversationId = getActiveConversationId?.() ?? 'unknown';
+    const outcome = await ingestAttachment(params.path, conversationId);
+    if (!outcome.success) {
+      return { success: false as const, error: (outcome as { success: false; error: string }).error };
     }
-
-    // Validate path exists
-    try {
-      statSync(path);
-    } catch {
-      return { success: false, error: `Path does not exist: ${path}` };
-    }
-
-    const stats = statSync(path);
-    const isFolder = stats.isDirectory();
-    const kind = isFolder ? 'folder' : 'file';
-    const displayName = basename(path);
-    const sizeBytes = isFolder ? getFolderSize(path) : stats.size;
-
-    // Read content for context injection
-    let contentSummary = '';
-    let contentForContext = '';
-
-    if (isFolder) {
-      const result = readFolderContents(path);
-      contentSummary = buildSummary('folder', displayName, sizeBytes, result);
-      if (result.files.length > 0) {
-        contentForContext = result.files.map(f => `=== ${f.path} ===\n${f.content}`).join('\n\n');
-      }
-    } else {
-      const extracted = extractFile(path);
-      if (extracted.failed) {
-        contentSummary = `File: ${displayName} (${Math.round(sizeBytes / 1024)} KB) — failed to extract: ${extracted.content}`;
-      } else if (extracted.kind === 'note') {
-        contentSummary = `Binary file: ${displayName} (${Math.round(sizeBytes / 1024)} KB) — ${extracted.content}`;
-      } else {
-        contentForContext = extracted.content;
-        contentSummary = buildSummary('file', displayName, sizeBytes);
-      }
-    }
-
-    // Store attachment metadata
-    const attachmentId = crypto.randomUUID();
-    const conversationId = getActiveConversationId?.() ?? 'unknown'; // Will be set by caller
-    await attachments.create({
-      id: attachmentId,
-      conversation_id: conversationId,
-      original_path: path,
-      display_name: displayName,
-      kind,
-      size_bytes: sizeBytes,
-      ingested_content_summary: contentSummary,
-    });
-
+    const attachment = (outcome as { success: true; attachment: IngestedAttachment }).attachment;
     return {
-      success: true,
-      result: JSON.stringify({
-        attachmentId,
-        path,
-        displayName,
-        kind,
-        sizeBytes,
-        summary: contentSummary,
-        content: contentForContext, // For context injection
-      }),
+      success: true as const,
+      result: JSON.stringify(attachment),
     };
   },
 });

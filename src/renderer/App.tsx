@@ -247,7 +247,7 @@ function App() {
             {shellView === 'activity' && <ToolHistoryView onGoHome={goHome} />}
             {shellView === 'memory' && <MemoryView onGoHome={goHome} />}
             {shellView === 'dashboard' && (
-              <DashboardView onGoHome={goHome} onOpenActivity={() => navigate('activity')} />
+              <DashboardView onGoHome={goHome} onOpenActivity={() => navigate('activity')} onOpenConversation={() => navigate('conversations')} />
             )}
           </div>
         </main>

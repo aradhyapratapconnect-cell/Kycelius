@@ -25,10 +25,18 @@ contextBridge.exposeInMainWorld('kyclius', {
     ipcRenderer.invoke('kyclius:search-dashboard-entries', query),
   // Dashboard stats (T-22)
   getDashboardStats: () => ipcRenderer.invoke('kyclius:get-dashboard-stats'),
+  // Conversation history preview (T-27)
+  listConversations: (limit?: number, offset?: number) =>
+    ipcRenderer.invoke('kyclius:list-conversations', limit, offset),
+  getConversationMessages: (conversationId: string) =>
+    ipcRenderer.invoke('kyclius:get-conversation-messages', conversationId),
+  openConversation: (conversationId: string) =>
+    ipcRenderer.invoke('kyclius:open-conversation', conversationId),
 
   // File methods
   getPathForFile: (file: File) => webUtils.getPathForFile(file),
   showOpenDialog: () => ipcRenderer.invoke('kyclius:show-open-dialog'),
+  attachFile: (path: string) => ipcRenderer.invoke('kyclius:attach-file', path),
 
   // Voice methods (F-07)
   startListening: () => ipcRenderer.invoke('kyclius:start-listening'),

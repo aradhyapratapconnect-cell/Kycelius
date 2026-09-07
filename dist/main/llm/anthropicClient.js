@@ -48,6 +48,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.AnthropicProvider = void 0;
 const providerErrors_1 = require("./providerErrors");
 const sse_1 = require("./sse");
+const timeouts_1 = require("../utils/timeouts");
 const ANTHROPIC_VERSION = '2023-06-01';
 const MAX_TOKENS = 4096;
 function messagesUrl(baseUrl) {
@@ -139,7 +140,8 @@ function parseArguments(raw) {
 }
 async function postMessages(baseUrl, apiKey, body) {
     try {
-        return await fetch(messagesUrl(baseUrl), {
+        // EF-10: enforced timeout so a hung provider socket cannot freeze the turn.
+        return await (0, timeouts_1.fetchWithTimeout)(messagesUrl(baseUrl), {
             method: 'POST',
             headers: {
                 'x-api-key': apiKey,
@@ -147,6 +149,7 @@ async function postMessages(baseUrl, apiKey, body) {
                 'content-type': 'application/json',
             },
             body: JSON.stringify(body),
+            timeoutMs: timeouts_1.LLM_FETCH_TIMEOUT_MS,
         });
     }
     catch {

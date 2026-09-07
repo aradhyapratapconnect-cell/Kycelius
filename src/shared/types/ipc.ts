@@ -21,9 +21,15 @@ export interface KycliusAPI {
   searchDashboardEntries: (query: string) => Promise<DashboardEntry[]>;
   // Dashboard stats (T-22) — real counts from the local tables
   getDashboardStats: () => Promise<DashboardStats>;
+  // Conversation history preview (T-27) — read-only scrollback + session switch
+  listConversations: (limit?: number, offset?: number) => Promise<ConversationInfo[]>;
+  getConversationMessages: (conversationId: string) => Promise<ConversationDetail>;
+  openConversation: (conversationId: string) => Promise<ConversationMessage[]>;
   // File methods
   getPathForFile: (file: File) => string;
   showOpenDialog: () => Promise<string[] | undefined>;
+  /** EF-11: direct ingestion shared by the picker and drag-and-drop paths. */
+  attachFile: (path: string) => Promise<AttachFileResult>;
   // Voice methods (F-07)
   startListening: () => Promise<VoiceStartResult>;
   stopListening: () => Promise<void>;
@@ -202,6 +208,44 @@ export interface ProviderUpdatePatch {
 export interface AssistantTokenPayload {
   turnId: string;
   delta: string;
+}
+
+// EF-11: direct attachment result (picker + drag-and-drop share this shape).
+export interface AttachedFileInfo {
+  id: string;
+  name: string;
+  kind: 'file' | 'folder';
+  size?: number;
+  path: string;
+  summary?: string;
+}
+
+export type AttachFileResult =
+  | { ok: true; attachment: AttachedFileInfo }
+  | { ok: false; error: string };
+
+// T-27: conversation history preview shapes (real rows, no fabricated data).
+export interface ConversationInfo {
+  id: string;
+  title: string;
+  created_at: string;
+  updated_at: string;
+  messageCount?: number;
+}
+
+export interface ConversationMessage {
+  id: string;
+  role: 'user' | 'assistant' | 'tool';
+  content: string;
+  input_mode?: 'voice' | 'text';
+  provider?: string;
+  model?: string;
+  created_at: string;
+}
+
+export interface ConversationDetail {
+  conversation: ConversationInfo;
+  messages: ConversationMessage[];
 }
 
 // Result types

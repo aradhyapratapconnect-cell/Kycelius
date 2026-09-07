@@ -45,6 +45,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.GeminiProvider = void 0;
 const providerErrors_1 = require("./providerErrors");
 const sse_1 = require("./sse");
+const timeouts_1 = require("../utils/timeouts");
 const MAX_TOKENS = 4096;
 function generateUrl(baseUrl, model) {
     return `${baseUrl.replace(/\/+$/, '')}/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`;
@@ -139,13 +140,15 @@ function finishReasonToStandard(reason) {
 }
 async function postGenerate(baseUrl, model, apiKey, body) {
     try {
-        return await fetch(generateUrl(baseUrl, model), {
+        // EF-10: enforced timeout so a hung provider socket cannot freeze the turn.
+        return await (0, timeouts_1.fetchWithTimeout)(generateUrl(baseUrl, model), {
             method: 'POST',
             headers: {
                 'x-goog-api-key': apiKey,
                 'content-type': 'application/json',
             },
             body: JSON.stringify(body),
+            timeoutMs: timeouts_1.LLM_FETCH_TIMEOUT_MS,
         });
     }
     catch {

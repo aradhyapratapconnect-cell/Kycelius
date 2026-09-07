@@ -13,6 +13,7 @@
 import { encodePcm16Wav } from '../pcmWav';
 import type { SttEngine } from '../sttService';
 import { appendV1Url, describeHttpError } from './cloudUtils';
+import { fetchWithTimeout, CLOUD_VOICE_TIMEOUT_MS } from '../../utils/timeouts';
 
 const STT_SAMPLE_RATE = 16_000;
 
@@ -47,12 +48,13 @@ export function createCloudSttEngine(
         form.append('file', new Blob([new Uint8Array(wav)], { type: 'audio/wav' }), 'audio.wav');
         form.append('model', config.model);
 
-        const res = await fetch(
+        const res = await fetchWithTimeout(
           appendV1Url(config.baseUrl, '/audio/transcriptions'),
           {
             method: 'POST',
             headers: { Authorization: `Bearer ${config.apiKey}` },
             body: form,
+            timeoutMs: CLOUD_VOICE_TIMEOUT_MS,
           }
         );
 

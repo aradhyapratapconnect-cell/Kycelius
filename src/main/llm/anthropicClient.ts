@@ -13,6 +13,7 @@
 
 import { mapHttpError, mapNetworkError } from './providerErrors';
 import { parseSseStream } from './sse';
+import { fetchWithTimeout, LLM_FETCH_TIMEOUT_MS } from '../utils/timeouts';
 import type {
   LLMMessage,
   LLMProvider,
@@ -146,7 +147,8 @@ async function postMessages(
   body: Record<string, unknown>
 ): Promise<Response> {
   try {
-    return await fetch(messagesUrl(baseUrl), {
+    // EF-10: enforced timeout so a hung provider socket cannot freeze the turn.
+    return await fetchWithTimeout(messagesUrl(baseUrl), {
       method: 'POST',
       headers: {
         'x-api-key': apiKey,
@@ -154,6 +156,7 @@ async function postMessages(
         'content-type': 'application/json',
       },
       body: JSON.stringify(body),
+      timeoutMs: LLM_FETCH_TIMEOUT_MS,
     });
   } catch {
     throw mapNetworkError(baseUrl);

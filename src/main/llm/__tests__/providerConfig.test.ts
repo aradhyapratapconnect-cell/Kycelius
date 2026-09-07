@@ -417,7 +417,28 @@ describe('N-08 cloud STT/TTS provider rows (voice capability)', () => {
     const ids = providerRegistry.listPresets('stt').map(p => p.presetKey);
     expect(ids).toEqual(['custom_stt']);
     const tts = providerRegistry.listPresets('tts').map(p => p.presetKey);
-    expect(tts).toEqual(['custom_tts']);
+    expect(tts).toEqual(['custom_tts', 'elevenlabs_tts', 'fishaudio_tts']);
+  });
+
+  it('BYOK TTS presets seed dormant on the shared cloud_tts schema (no migration)', () => {
+    for (const presetKey of ['elevenlabs_tts', 'fishaudio_tts']) {
+      const row = providerRegistry.add({ capability: 'tts', presetKey });
+      expect(row).toMatchObject({
+        capability: 'tts',
+        schema: 'cloud_tts',
+        enabled: false,
+        hasKey: false,
+        isDefault: false,
+      });
+    }
+    expect(providerRegistry.get('elevenlabs_tts')).toMatchObject({
+      displayName: 'ElevenLabs',
+      baseUrl: 'https://api.elevenlabs.io/v1',
+    });
+    expect(providerRegistry.get('fishaudio_tts')).toMatchObject({
+      displayName: 'Fish Audio',
+      baseUrl: 'https://api.fish.audio',
+    });
   });
 
   it('recognizes voice rows as providers but never as LLM providers', () => {

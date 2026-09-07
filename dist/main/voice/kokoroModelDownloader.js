@@ -10,10 +10,13 @@ const promises_2 = require("stream/promises");
 const stream_1 = require("stream");
 const KOKORO_REPO = 'onnx-community/Kokoro-82M-ONNX';
 const BASE_URL = `https://huggingface.co/${KOKORO_REPO}/resolve/main`;
+/** CMUdict lexicon for the G2P front-end (public domain, ~3.6 MB). */
+const CMU_BASE_URL = 'https://raw.githubusercontent.com/cmusphinx/cmudict/master';
 const FILES = [
     { path: 'onnx/model_quantized.onnx', localName: 'model.onnx' },
     { path: 'voices/af.bin', localName: 'voice_af.bin' },
     { path: 'tokenizer.json', localName: 'tokenizer.json' },
+    { path: 'cmudict.dict', localName: 'cmudict.dict', base: CMU_BASE_URL },
 ];
 function getKokoroDir() {
     return (0, path_1.join)(electron_1.app.getPath('userData'), 'kokoro');
@@ -75,9 +78,9 @@ async function downloadAttempt(url, destPath, onProgress) {
     await (0, promises_2.pipeline)(nodeStream, fileStream);
 }
 /**
- * Downloads the Kokoro-82M ONNX model, default voice, and tokenizer from
- * HuggingFace to the app's userData directory. Skips files that already exist.
- * Returns the local paths to the downloaded files.
+ * Downloads the Kokoro-82M ONNX model, default voice, tokenizer, and the
+ * CMUdict G2P lexicon to the app's userData directory. Skips files that
+ * already exist. Returns the local paths to the downloaded files.
  */
 async function ensureKokoroModel(onProgress) {
     const dir = getKokoroDir();
@@ -89,7 +92,8 @@ async function ensureKokoroModel(onProgress) {
         if (await fileExists(localPath)) {
             continue;
         }
-        const url = `${BASE_URL}/${file.path}`;
+        const base = 'base' in file && typeof file.base === 'string' ? file.base : BASE_URL;
+        const url = `${base}/${file.path}`;
         await downloadFile(url, localPath, (downloaded, total) => {
             onProgress?.({ file: file.localName, downloaded, total });
         });
@@ -98,6 +102,7 @@ async function ensureKokoroModel(onProgress) {
         modelPath: paths['model.onnx'],
         voicePath: paths['voice_af.bin'],
         tokenizerPath: paths['tokenizer.json'],
+        lexiconPath: paths['cmudict.dict'],
     };
 }
 /**

@@ -7,11 +7,14 @@ import { Readable } from 'stream';
 
 const KOKORO_REPO = 'onnx-community/Kokoro-82M-ONNX';
 const BASE_URL = `https://huggingface.co/${KOKORO_REPO}/resolve/main`;
+/** CMUdict lexicon for the G2P front-end (public domain, ~3.6 MB). */
+const CMU_BASE_URL = 'https://raw.githubusercontent.com/cmusphinx/cmudict/master';
 
 const FILES = [
   { path: 'onnx/model_quantized.onnx', localName: 'model.onnx' },
   { path: 'voices/af.bin', localName: 'voice_af.bin' },
   { path: 'tokenizer.json', localName: 'tokenizer.json' },
+  { path: 'cmudict.dict', localName: 'cmudict.dict', base: CMU_BASE_URL },
 ] as const;
 
 export interface DownloadProgress {
@@ -106,12 +109,13 @@ export interface KokoroModelPaths {
   modelPath: string;
   voicePath: string;
   tokenizerPath: string;
+  lexiconPath: string;
 }
 
 /**
- * Downloads the Kokoro-82M ONNX model, default voice, and tokenizer from
- * HuggingFace to the app's userData directory. Skips files that already exist.
- * Returns the local paths to the downloaded files.
+ * Downloads the Kokoro-82M ONNX model, default voice, tokenizer, and the
+ * CMUdict G2P lexicon to the app's userData directory. Skips files that
+ * already exist. Returns the local paths to the downloaded files.
  */
 export async function ensureKokoroModel(
   onProgress?: (progress: DownloadProgress) => void
@@ -129,7 +133,8 @@ export async function ensureKokoroModel(
       continue;
     }
 
-    const url = `${BASE_URL}/${file.path}`;
+    const base = 'base' in file && typeof file.base === 'string' ? file.base : BASE_URL;
+    const url = `${base}/${file.path}`;
     await downloadFile(url, localPath, (downloaded, total) => {
       onProgress?.({ file: file.localName, downloaded, total });
     });
@@ -139,6 +144,7 @@ export async function ensureKokoroModel(
     modelPath: paths['model.onnx'],
     voicePath: paths['voice_af.bin'],
     tokenizerPath: paths['tokenizer.json'],
+    lexiconPath: paths['cmudict.dict'],
   };
 }
 

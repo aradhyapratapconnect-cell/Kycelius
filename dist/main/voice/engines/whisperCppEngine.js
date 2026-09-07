@@ -9,6 +9,7 @@ const promises_1 = require("fs/promises");
 const os_1 = require("os");
 const path_1 = require("path");
 const pcmWav_1 = require("../pcmWav");
+const timeouts_1 = require("../../utils/timeouts");
 class WhisperNotConfiguredError extends Error {
     constructor() {
         super('whisper.cpp is not configured. Set the whisper binary and model paths in Settings, switch to the system speech engine, or type your request instead.');
@@ -75,12 +76,31 @@ function createWhisperCppEngine(getConfig) {
                         stdio: ['ignore', 'pipe', 'pipe'],
                         windowsHide: true,
                     });
+                    let killTimer;
                     const settle = (fn) => {
                         if (!settled) {
                             settled = true;
+                            if (killTimer)
+                                clearTimeout(killTimer);
                             fn();
                         }
                     };
+                    // EF-10: enforced wall-clock ceiling — a hung whisper binary is
+                    // killed instead of blocking the main process indefinitely.
+                    killTimer = setTimeout(() => {
+                        settle(() => {
+                            try {
+                                child.kill();
+                            }
+                            catch {
+                                // already exited
+                            }
+                            reject(Object.assign(new Error(`Speech recognition timed out after ${timeouts_1.WHISPER_SPAWN_TIMEOUT_MS}ms and was killed`), { code: 'stt_engine_error' }));
+                        });
+                    }, timeouts_1.WHISPER_SPAWN_TIMEOUT_MS);
+                    if (typeof killTimer.unref === 'function') {
+                        killTimer.unref();
+                    }
                     child.on('error', err => settle(() => reject(Object.assign(new Error(`Speech engine failed to start: ${err.message}`), { code: 'stt_engine_error' }))));
                     child.stdout?.on('data', chunk => (stdout += String(chunk)));
                     child.stderr?.on('data', chunk => (stderr += String(chunk)));

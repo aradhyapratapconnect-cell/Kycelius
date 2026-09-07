@@ -10,10 +10,23 @@
  * the ttsService falls back to the local Kokoro/OS chain (never silent).
  */
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.ttsModelRequired = ttsModelRequired;
 exports.createCloudTtsEngine = createCloudTtsEngine;
 exports.listCloudVoiceModels = listCloudVoiceModels;
 const pcmWav_1 = require("../pcmWav");
 const cloudUtils_1 = require("./cloudUtils");
+const timeouts_1 = require("../../utils/timeouts");
+const fishAudioTtsEngine_1 = require("./fishAudioTtsEngine");
+/**
+ * Whether a TTS provider row needs a non-empty Model/Voice ID to resolve to
+ * cloud. Fish Audio is the exception: its reference voice is optional and an
+ * empty field means the default voice — still a usable cloud config. Every
+ * other provider treats empty as "not configured" and stays local-first.
+ * Pure so the resolution gate has direct unit coverage.
+ */
+function ttsModelRequired(presetKey) {
+    return presetKey !== fishAudioTtsEngine_1.FISHAUDIO_PRESET_KEY;
+}
 function createCloudTtsEngine(config) {
     let lastSampleRate = 24_000;
     return {
@@ -22,7 +35,8 @@ function createCloudTtsEngine(config) {
             return lastSampleRate;
         },
         async synthesize(text) {
-            const res = await fetch((0, cloudUtils_1.appendV1Url)(config.baseUrl, '/audio/speech'), {
+            // EF-10: enforced timeout so a hung cloud TTS socket falls back locally.
+            const res = await (0, timeouts_1.fetchWithTimeout)((0, cloudUtils_1.appendV1Url)(config.baseUrl, '/audio/speech'), {
                 method: 'POST',
                 headers: {
                     Authorization: `Bearer ${config.apiKey}`,
@@ -33,6 +47,7 @@ function createCloudTtsEngine(config) {
                     input: text,
                     response_format: 'wav',
                 }),
+                timeoutMs: timeouts_1.CLOUD_VOICE_TIMEOUT_MS,
             });
             if (!res.ok) {
                 throw new Error(await (0, cloudUtils_1.describeHttpError)(res, config.displayName));

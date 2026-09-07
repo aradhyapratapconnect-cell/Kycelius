@@ -265,4 +265,22 @@ function fourStepContent() {
         (0, vitest_1.expect)(planner_1.planner.isPlanRunning()).toBe(false);
         (0, vitest_1.expect)(storeRows.find(r => r.id === plan.planId)?.status).toBe('failed');
     });
+    (0, vitest_1.it)('EF-10: aborts an in-flight hung step at the plan time ceiling (stopped_by_limit)', async () => {
+        const { deps } = makeDeps({
+            planContent: [{ tool: 'send_email', arguments: {}, reason: 'hangs' }],
+            // Never resolves on its own — the ceiling must interrupt it.
+            execute: async () => new Promise(() => { }),
+            limits: () => ({ maxPlanSteps: 10, maxPlanDurationMs: 40 }),
+            now: () => Date.now(),
+        });
+        planner_1.planner.configure(deps);
+        const plan = await makePlan(deps);
+        const start = Date.now();
+        const result = await planner_1.planner.runPlan(plan);
+        (0, vitest_1.expect)(result.status).toBe('stopped_by_limit');
+        (0, vitest_1.expect)(result.reason).toMatch(/time limit/i);
+        (0, vitest_1.expect)(planner_1.planner.isPlanRunning()).toBe(false);
+        // Bounded well below any "frozen app" duration.
+        (0, vitest_1.expect)(Date.now() - start).toBeLessThan(5000);
+    });
 });

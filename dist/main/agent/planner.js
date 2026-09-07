@@ -26,6 +26,7 @@ exports.planner = exports.PlanGenerationError = void 0;
 exports.parsePlanResponse = parsePlanResponse;
 const crypto_1 = require("crypto");
 const confirmationQueue_1 = require("../permissions/confirmationQueue");
+const timeouts_1 = require("../utils/timeouts");
 class PlanGenerationError extends Error {
     constructor(message) {
         super(message);
@@ -143,7 +144,10 @@ class Planner {
         if (tools.length === 0) {
             throw new PlanGenerationError('There are no tools available to plan with.');
         }
-        const response = await deps.chatCompletion(buildPlanMessages(trimmedGoal, tools));
+        // EF-10: plan generation itself is bounded by max_plan_duration — a hung
+        // provider call aborts instead of blocking the turn indefinitely.
+        const { maxPlanDurationMs } = deps.limits();
+        const response = await (0, timeouts_1.withTimeout)(deps.chatCompletion(buildPlanMessages(trimmedGoal, tools)), maxPlanDurationMs > 0 ? maxPlanDurationMs : 60_000, 'Plan generation');
         const { steps, warnings } = parsePlanResponse(response.content, new Set(tools.map(t => t.name)));
         const planId = (0, crypto_1.randomUUID)();
         deps.plans.create({
@@ -205,10 +209,24 @@ class Planner {
             }
             let outcome;
             try {
-                outcome = await deps.execute(step.toolName, step.arguments);
+                // EF-10: each step races against the plan's remaining time budget, so
+                // a hung tool call aborts the plan at the ceiling instead of blocking
+                // forever. The between-steps check above handles the already-expired
+                // case; this race handles the in-flight case.
+                const remainingMs = maxPlanDurationMs - (deps.now() - startedAt);
+                const stepWork = deps.execute(step.toolName, step.arguments);
+                outcome =
+                    remainingMs > 0
+                        ? await (0, timeouts_1.withTimeout)(stepWork, remainingMs, `Plan step ${step.index + 1}`)
+                        : await stepWork;
             }
             catch (err) {
                 // A crashing tool must not leave the plan wedged as "running".
+                // EF-10: a step that hits the plan's time budget stops by limit (not
+                // "failed") so the UI reports the ceiling honestly.
+                if (err instanceof Error && err.name === 'TimeoutError') {
+                    return finish('stopped_by_limit', `Reached the plan time limit; ${completedSteps.length} step(s) had completed.`);
+                }
                 outcome = { success: false, error: err instanceof Error ? err.message : String(err) };
             }
             if (outcome.success) {

@@ -4,6 +4,7 @@ import { join } from 'path';
 import { createWriteStream } from 'fs';
 import { pipeline } from 'stream/promises';
 import { Readable } from 'stream';
+import { fetchWithTimeout, MODEL_DOWNLOAD_TIMEOUT_MS } from '../utils/timeouts';
 
 // EF-02: the old `ggml-org/whisper` repo is gated and now returns 401 to
 // unauthenticated requests. The public mirror that hosts the whisper.cpp models
@@ -122,8 +123,10 @@ async function downloadAttempt(
   // must not carry an Authorization header — if one ever appears, that's the
   // first place to hunt for the 401.
   console.log(`[whisper-model-download] GET ${url}`);
-  const response = await fetch(url, {
+  // EF-10: enforced per-attempt timeout so a stalled mirror cannot hang the app.
+  const response = await fetchWithTimeout(url, {
     headers: { 'User-Agent': 'kyclius-desktop/2.6.1' },
+    timeoutMs: MODEL_DOWNLOAD_TIMEOUT_MS,
   });
   console.log(
     `[whisper-model-download] ${response.status} ${response.statusText} for ${url}` +

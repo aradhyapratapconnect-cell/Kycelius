@@ -137,7 +137,11 @@ export const LLM_PRESETS: ProviderPreset[] = [
 ];
 
 /** Cloud voice (N-08) is custom-only for now: the same "+ Add Provider" UI
- *  pattern with general OpenAI-compatible transcription/speech endpoints. */
+ *  pattern with general OpenAI-compatible transcription/speech endpoints.
+ *  ElevenLabs and Fish Audio are first-class BYOK TTS presets on the same
+ *  `cloud_tts` schema — the TTS engine factory branches on `presetKey`, so no
+ *  schema migration is needed and STT is untouched. All ship dormant
+ *  (enabled=0, no key) until the user adds their own key. */
 export const VOICE_PRESETS: ProviderPreset[] = [
   {
     presetKey: 'custom_stt',
@@ -151,6 +155,22 @@ export const VOICE_PRESETS: ProviderPreset[] = [
     displayName: 'Custom Cloud TTS',
     capability: 'tts',
     schema: 'cloud_tts',
+    defaultModel: '',
+  },
+  {
+    presetKey: 'elevenlabs_tts',
+    displayName: 'ElevenLabs',
+    capability: 'tts',
+    schema: 'cloud_tts',
+    baseUrl: 'https://api.elevenlabs.io/v1',
+    defaultModel: '21m00Tcm4TlvDq8ikWAM',
+  },
+  {
+    presetKey: 'fishaudio_tts',
+    displayName: 'Fish Audio',
+    capability: 'tts',
+    schema: 'cloud_tts',
+    baseUrl: 'https://api.fish.audio',
     defaultModel: '',
   },
 ];

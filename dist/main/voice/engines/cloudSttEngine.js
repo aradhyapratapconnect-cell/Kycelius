@@ -14,6 +14,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.createCloudSttEngine = createCloudSttEngine;
 const pcmWav_1 = require("../pcmWav");
 const cloudUtils_1 = require("./cloudUtils");
+const timeouts_1 = require("../../utils/timeouts");
 const STT_SAMPLE_RATE = 16_000;
 function createCloudSttEngine(config, deps) {
     return {
@@ -24,10 +25,11 @@ function createCloudSttEngine(config, deps) {
                 const form = new FormData();
                 form.append('file', new Blob([new Uint8Array(wav)], { type: 'audio/wav' }), 'audio.wav');
                 form.append('model', config.model);
-                const res = await fetch((0, cloudUtils_1.appendV1Url)(config.baseUrl, '/audio/transcriptions'), {
+                const res = await (0, timeouts_1.fetchWithTimeout)((0, cloudUtils_1.appendV1Url)(config.baseUrl, '/audio/transcriptions'), {
                     method: 'POST',
                     headers: { Authorization: `Bearer ${config.apiKey}` },
                     body: form,
+                    timeoutMs: timeouts_1.CLOUD_VOICE_TIMEOUT_MS,
                 });
                 if (!res.ok) {
                     throw new Error(await (0, cloudUtils_1.describeHttpError)(res, config.displayName));

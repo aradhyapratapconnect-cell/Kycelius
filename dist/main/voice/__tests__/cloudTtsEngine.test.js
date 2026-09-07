@@ -79,6 +79,17 @@ function wavResponse(pcm, sampleRate, status = 200) {
         await (0, vitest_1.expect)(engine.synthesize('hello')).rejects.toThrow(/silent|WAV/i);
     });
 });
+(0, vitest_1.describe)('ttsModelRequired (BYOK resolution gate)', () => {
+    (0, vitest_1.it)('requires a model/voice id for generic, ElevenLabs, and unknown presets', () => {
+        (0, vitest_1.expect)((0, cloudTtsEngine_1.ttsModelRequired)(undefined)).toBe(true);
+        (0, vitest_1.expect)((0, cloudTtsEngine_1.ttsModelRequired)('custom_tts')).toBe(true);
+        (0, vitest_1.expect)((0, cloudTtsEngine_1.ttsModelRequired)('elevenlabs_tts')).toBe(true);
+        (0, vitest_1.expect)((0, cloudTtsEngine_1.ttsModelRequired)('something_else')).toBe(true);
+    });
+    (0, vitest_1.it)('waives the requirement for Fish Audio (empty = default voice)', () => {
+        (0, vitest_1.expect)((0, cloudTtsEngine_1.ttsModelRequired)('fishaudio_tts')).toBe(false);
+    });
+});
 (0, vitest_1.describe)('listCloudVoiceModels', () => {
     (0, vitest_1.afterEach)(() => {
         vitest_1.vi.unstubAllGlobals();

@@ -333,4 +333,25 @@ describe('planner.runPlan', () => {
     expect(planner.isPlanRunning()).toBe(false);
     expect(storeRows.find(r => r.id === plan.planId)?.status).toBe('failed');
   });
+
+  it('EF-10: aborts an in-flight hung step at the plan time ceiling (stopped_by_limit)', async () => {
+    const { deps } = makeDeps({
+      planContent: [{ tool: 'send_email', arguments: {}, reason: 'hangs' }],
+      // Never resolves on its own — the ceiling must interrupt it.
+      execute: async () => new Promise<{ success: boolean }>(() => {}),
+      limits: () => ({ maxPlanSteps: 10, maxPlanDurationMs: 40 }),
+      now: () => Date.now(),
+    });
+    planner.configure(deps);
+    const plan = await makePlan(deps);
+
+    const start = Date.now();
+    const result = await planner.runPlan(plan);
+
+    expect(result.status).toBe('stopped_by_limit');
+    expect(result.reason).toMatch(/time limit/i);
+    expect(planner.isPlanRunning()).toBe(false);
+    // Bounded well below any "frozen app" duration.
+    expect(Date.now() - start).toBeLessThan(5000);
+  });
 });

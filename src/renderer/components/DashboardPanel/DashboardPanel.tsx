@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { DashboardEntry, DashboardStats } from '@shared/types/ipc';
+import { useChatStore } from '../../state/chatStore';
+import { ConversationPreviewModal } from '../ConversationPreview';
 
 type InputModeFilter = 'all' | 'voice' | 'text';
 
@@ -34,6 +36,8 @@ interface DashboardViewProps {
   onGoHome: () => void;
   /** T-22: nav straight from a tool summary into the Activity view. */
   onOpenActivity: () => void;
+  /** T-27: nav into the real Conversation view (after "Open full conversation"). */
+  onOpenConversation?: () => void;
 }
 
 function StatCard({
@@ -72,13 +76,17 @@ function StatCard({
  * reverse-chronological Q&A log with search + input-mode filters and on-demand
  * TTS playback.
  */
-export function DashboardView({ onGoHome, onOpenActivity }: DashboardViewProps) {
+export function DashboardView({ onGoHome, onOpenActivity, onOpenConversation }: DashboardViewProps) {
   const [entries, setEntries] = useState<DashboardEntry[]>([]);
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [inputModeFilter, setInputModeFilter] = useState<InputModeFilter>('all');
   const [loadError, setLoadError] = useState<string | null>(null);
   const [speakingId, setSpeakingId] = useState<string | null>(null);
+  // T-27: which conversation's preview is open (null = none). Setting a new
+  // id while open replaces the content rather than stacking modals.
+  const [previewId, setPreviewId] = useState<string | null>(null);
+  const openConversation = useChatStore(s => s.openConversation);
 
   const load = useCallback(async () => {
     try {
@@ -131,6 +139,20 @@ export function DashboardView({ onGoHome, onOpenActivity }: DashboardViewProps) 
       setSpeakingId(null);
     }
   }, [speakingId]);
+
+  // T-27: tapping an entry opens the read-only preview overlay (nav unchanged).
+  const handlePreview = useCallback((conversationId: string) => {
+    setPreviewId(conversationId);
+  }, []);
+
+  // T-27: "Open full conversation" — continue the history as the live session.
+  const handleOpenFull = useCallback(async (conversationId: string) => {
+    const ok = await openConversation(conversationId);
+    if (ok) {
+      setPreviewId(null);
+      onOpenConversation?.();
+    }
+  }, [openConversation, onOpenConversation]);
 
   return (
     <section
@@ -347,7 +369,19 @@ export function DashboardView({ onGoHome, onOpenActivity }: DashboardViewProps) 
                       </span>
                     </div>
 
-                    {/* Listen button */}
+                    {/* Preview + Listen buttons */}
+                    <button
+                      type="button"
+                      onClick={() => handlePreview(entry.conversation_id)}
+                      title="Preview this conversation"
+                      className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium transition-colors cursor-pointer shrink-0 bg-surface-variant/50 text-on-surface-variant hover:bg-surface-variant hover:text-on-surface border border-outline-variant/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf-soft/70"
+                    >
+                      <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                        <circle cx="12" cy="12" r="3" />
+                      </svg>
+                      Preview
+                    </button>
                     <button
                       type="button"
                       onClick={() => void handleSpeak(entry)}
@@ -381,6 +415,15 @@ export function DashboardView({ onGoHome, onOpenActivity }: DashboardViewProps) 
           })}
         </div>
       </div>
+
+      {/* T-27: history preview overlay — strict overlay, never a route change. */}
+      {previewId && (
+        <ConversationPreviewModal
+          conversationId={previewId}
+          onClose={() => setPreviewId(null)}
+          onOpenFullConversation={id => void handleOpenFull(id)}
+        />
+      )}
     </section>
   );
 }

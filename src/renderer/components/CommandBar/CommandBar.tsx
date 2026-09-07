@@ -43,8 +43,11 @@ export function CommandBar() {
   const feedbackTimerRef = useRef<number | null>(null);
 
   // Attachment state
-  const [attachments, setAttachments] = useState<Array<{ id: string; name: string; kind: 'file' | 'folder'; size?: number }>>([]);
+  const [attachments, setAttachments] = useState<Array<{ id: string; name: string; kind: 'file' | 'folder'; size?: number; path: string }>>([]);
   const [isDragOver, setIsDragOver] = useState(false);
+  // EF-10 / Frontend Spec §5: distinct "taking longer than expected" state so a
+  // slow call is never visually indistinguishable from a hung app.
+  const [isSlow, setIsSlow] = useState(false);
 
   const showFeedback = useCallback((message: string, durationMs = 6000) => {
     setVoiceFeedback(message);
@@ -66,6 +69,17 @@ export function CommandBar() {
     isSendingRef.current = isSending;
   }, [isSending]);
 
+  // EF-10: arm the "taking longer than expected" transition well before
+  // anything could read as frozen (~9s, above normal time-to-first-token).
+  useEffect(() => {
+    if (!isSending) {
+      setIsSlow(false);
+      return;
+    }
+    const timer = window.setTimeout(() => setIsSlow(true), 9000);
+    return () => window.clearTimeout(timer);
+  }, [isSending]);
+
   // EF-04: clear the transient voice-feedback timer on unmount.
   useEffect(() => {
     return () => {
@@ -83,25 +97,64 @@ export function CommandBar() {
     isListeningRef.current = false;
   }, []);
 
+  // EF-11: both the "+" picker and drag-and-drop funnel through the same
+  // main-process `kyclius:attach-file` handler (which normalizes Windows
+  // paths). Every attempt ends in a visible chip or a specific error — never
+  // total silence. Legacy fallback (no IPC, e.g. web dev) keeps a local chip.
+  const attachOnePath = useCallback(async (rawPath: string, fallbackName?: string) => {
+    const fallback = fallbackName ?? rawPath.split(/[/\\]/).pop() ?? rawPath;
+    if (!window.kyclius?.attachFile) {
+      setAttachments(prev => [
+        ...prev,
+        { id: crypto.randomUUID(), name: fallback, kind: 'file' as const, path: rawPath },
+      ]);
+      return;
+    }
+    try {
+      const result = await window.kyclius.attachFile(rawPath);
+      if (result.ok) {
+        setAttachments(prev => [
+          ...prev,
+          {
+            id: result.attachment.id,
+            name: result.attachment.name,
+            kind: result.attachment.kind,
+            size: result.attachment.size,
+            path: result.attachment.path,
+          },
+        ]);
+      } else {
+        const err = (result as { ok: false; error: string }).error;
+        showFeedback(`Couldn't attach ${fallback}: ${err}`);
+      }
+    } catch (err) {
+      showFeedback(`Couldn't attach ${fallback}: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }, [showFeedback]);
+
   // Attach file/folder via native dialog or drag-and-drop
   const handleAttachFiles = useCallback(async (files: FileList) => {
     if (!window.kyclius) return;
+    if (!files || files.length === 0) {
+      showFeedback('Drop didn\'t include any files — try the + button instead.');
+      return;
+    }
     for (const file of Array.from(files)) {
+      let filePath = '';
       try {
-        const filePath = window.kyclius.getPathForFile(file);
-        const attachment = {
-          id: crypto.randomUUID(),
-          name: file.name,
-          kind: file.type === '' ? ('folder' as const) : ('file' as const),
-          size: file.size,
-          path: filePath,
-        };
-        setAttachments(prev => [...prev, attachment]);
+        filePath = window.kyclius.getPathForFile(file);
       } catch (err) {
         showFeedback(`Failed to attach ${file.name}: ${err instanceof Error ? err.message : String(err)}`);
+        continue;
       }
+      // EF-11: an unresolvable drop path must still acknowledge visibly.
+      if (!filePath || filePath.trim().length === 0) {
+        showFeedback(`Couldn't attach ${file.name}: the drop didn't include a file path — try the + button instead.`);
+        continue;
+      }
+      await attachOnePath(filePath, file.name);
     }
-  }, [showFeedback]);
+  }, [showFeedback, attachOnePath]);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -128,45 +181,32 @@ export function CommandBar() {
     if (!window.kyclius) return;
     try {
       const paths = await window.kyclius.showOpenDialog();
-      if (paths && paths.length > 0) {
-        for (const p of paths) {
-          const attachment = {
-            id: crypto.randomUUID(),
-            name: p.split(/[/\\]/).pop() || p,
-            kind: 'file' as const,
-            path: p,
-          };
-          setAttachments(prev => [...prev, attachment]);
-        }
+      if (!paths || paths.length === 0) return;
+      for (const p of paths) {
+        await attachOnePath(p);
       }
     } catch (err) {
       showFeedback(`Failed to open file picker: ${err instanceof Error ? err.message : String(err)}`);
     }
-  }, [showFeedback]);
+  }, [showFeedback, attachOnePath]);
 
   const handleRemoveAttachment = useCallback((id: string) => {
     setAttachments(prev => prev.filter(a => a.id !== id));
   }, []);
 
   // Voice + typed input converge on the same chatStore.sendMessage path.
+  // EF-11: attachments are already ingested in main at attach time (same
+  // handler for picker + drag-drop) and ride along via attachment context —
+  // no prompt injection asking the LLM to call attach_file.
   const submit = useCallback(
     (text: string, inputMode: 'voice' | 'text') => {
-      let finalMessage = text.trim();
-      const currentAttachments = [...attachments];
-      
-      // If there are attachments, append them to the message so the LLM knows
-      // to call the attach_file tool to read them.
-      if (currentAttachments.length > 0) {
-        const paths = currentAttachments.map(a => `"${a.path}"`).join(', ');
-        const attachmentPrompt = `\n\n[User attached the following files: ${paths} — please use the attach_file tool to read them into context]`;
-        finalMessage = finalMessage ? finalMessage + attachmentPrompt : attachmentPrompt.trim();
-      }
+      const finalMessage = text.trim();
 
       if (!finalMessage) return;
       if (isSendingRef.current) return;
 
       setValue('');
-      // Clear attachments after sending - they're handled by the attach_file tool in main
+      // Chips stay visible until send; main already holds the ingested rows.
       setAttachments([]);
       void sendMessage(finalMessage, inputMode);
 
@@ -261,8 +301,12 @@ export function CommandBar() {
   }, [isListening, isSending, stopListening]);
 
   const canSend = value.trim().length > 0 && !isSending;
-  const hint = isListening ? STATE_HINT.listening : STATE_HINT[assistantState];
+  const baseHint = isListening ? STATE_HINT.listening : STATE_HINT[assistantState];
+  // EF-10: slow calls get a distinct, calm-but-clear message with a cancel
+  // affordance — never identical to the hung-app look.
+  const hint = isSlow && isSending ? 'Still working — taking longer than expected.' : baseHint;
   const isThinking = assistantState === 'thinking';
+  const showStop = isSending && (isThinking || isSlow || assistantState === 'executing');
 
   return (
     <div className="w-full max-w-[720px] mx-auto" role="search" aria-label="Kyclius command bar">
@@ -300,7 +344,9 @@ export function CommandBar() {
           'flex items-center gap-3 w-full bg-surface/30 backdrop-blur-[20px] border px-4 py-2',
           'rounded-[24px] shadow-glass transition-all duration-150',
           STATE_RING[assistantState],
-          isListening ? '' : 'focus-within:border-secondary focus-within:shadow-[0_0_20px_rgba(139,207,240,0.2)]',
+          // EF-06: focus glow is the soft leaf-soft wash from the Frontend Spec,
+          // not the hard blue (sky-deep/secondary) rectangular outline.
+          isListening ? '' : 'focus-within:border-leaf-soft/60 focus-within:shadow-[0_0_20px_rgba(136,249,181,0.22)]',
           isSending ? 'opacity-70' : '',
           isDragOver ? 'border-secondary/50 bg-secondary/5' : '',
         ].join(' ')}
@@ -317,7 +363,7 @@ export function CommandBar() {
           onClick={() => void handleMicClick()}
           className={[
             'relative shrink-0 w-10 h-10 rounded-full flex items-center justify-center',
-            'transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-deep',
+            'transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf-soft/70',
             isSending ? 'cursor-not-allowed opacity-60' : 'cursor-pointer',
             isListening
               ? 'bg-secondary text-on-secondary animate-pulse-soft'
@@ -367,7 +413,7 @@ export function CommandBar() {
           onClick={handleAttachClick}
           className={[
             'relative shrink-0 w-10 h-10 rounded-full flex items-center justify-center',
-            'transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-deep',
+            'transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf-soft/70',
             isSending ? 'cursor-not-allowed opacity-60' : 'cursor-pointer',
             'bg-surface-container/50 text-secondary hover:bg-surface-variant',
           ].join(' ')}
@@ -419,15 +465,22 @@ export function CommandBar() {
           />
         )}
 
-        {/* T-02 / spec §6: "Stop generating" while a turn is in flight */}
-        {isThinking && (
+        {/* T-02 / spec §6: "Stop generating" while a turn is in flight.
+            EF-10: stays visible (with slow styling) once the turn exceeds the
+            "taking longer than expected" threshold, in any active phase. */}
+        {showStop && (
           <button
             type="button"
             onClick={() => cancelGeneration()}
-            className="shrink-0 px-2.5 h-8 rounded-lg text-xs font-medium border border-outline-variant/40 text-on-surface-variant hover:text-danger hover:border-danger/40 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-deep"
-            title="Stop generating"
+            className={[
+              'shrink-0 px-2.5 h-8 rounded-lg text-xs font-medium border transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf-soft/70',
+              isSlow
+                ? 'border-warning/60 text-warning hover:border-warning animate-pulse-soft'
+                : 'border-outline-variant/40 text-on-surface-variant hover:text-danger hover:border-danger/40',
+            ].join(' ')}
+            title={isSlow ? 'Still working — tap to cancel' : 'Stop generating'}
           >
-            Stop
+            {isSlow ? 'Still working — stop' : 'Stop'}
           </button>
         )}
 
@@ -439,7 +492,7 @@ export function CommandBar() {
           onClick={() => submit(value, 'text')}
           className={[
             'shrink-0 w-10 h-10 rounded-full flex items-center justify-center transition-all',
-            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-deep',
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf-soft/70',
             canSend
               ? 'bg-primary-container text-on-primary-container hover:brightness-110 active:scale-95 shadow-lg cursor-pointer'
               : 'bg-surface-variant text-on-surface-variant/40 cursor-not-allowed',

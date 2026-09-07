@@ -50,6 +50,7 @@ exports.parseStructuredToolCall = parseStructuredToolCall;
 exports.parseOpenAiChunk = parseOpenAiChunk;
 const sse_1 = require("./sse");
 const providerErrors_1 = require("./providerErrors");
+const timeouts_1 = require("../utils/timeouts");
 const MAX_TOKENS = 4096;
 function chatCompletionsUrl(baseUrl) {
     return `${baseUrl.replace(/\/+$/, '')}/chat/completions`;
@@ -81,13 +82,15 @@ function buildRequestBody(model, messages, tools, opts) {
 }
 async function postChat(baseUrl, apiKey, body) {
     try {
-        return await fetch(chatCompletionsUrl(baseUrl), {
+        // EF-10: enforced timeout so a hung provider socket cannot freeze the turn.
+        return await (0, timeouts_1.fetchWithTimeout)(chatCompletionsUrl(baseUrl), {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${apiKey}`,
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify(body),
+            timeoutMs: timeouts_1.LLM_FETCH_TIMEOUT_MS,
         });
     }
     catch {

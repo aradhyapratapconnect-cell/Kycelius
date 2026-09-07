@@ -4,6 +4,7 @@ import { tmpdir } from 'os';
 import { join } from 'path';
 import { encodePcm16Wav } from '../pcmWav';
 import type { SttEngine } from '../sttService';
+import { WHISPER_SPAWN_TIMEOUT_MS } from '../../utils/timeouts';
 
 export interface WhisperCppConfig {
   binaryPath: string;
@@ -98,12 +99,37 @@ export function createWhisperCppEngine(
             windowsHide: true,
           });
 
+          let killTimer: ReturnType<typeof setTimeout> | undefined;
           const settle = (fn: () => void) => {
             if (!settled) {
               settled = true;
+              if (killTimer) clearTimeout(killTimer);
               fn();
             }
           };
+
+          // EF-10: enforced wall-clock ceiling — a hung whisper binary is
+          // killed instead of blocking the main process indefinitely.
+          killTimer = setTimeout(() => {
+            settle(() => {
+              try {
+                child.kill();
+              } catch {
+                // already exited
+              }
+              reject(
+                Object.assign(
+                  new Error(
+                    `Speech recognition timed out after ${WHISPER_SPAWN_TIMEOUT_MS}ms and was killed`
+                  ),
+                  { code: 'stt_engine_error' }
+                )
+              );
+            });
+          }, WHISPER_SPAWN_TIMEOUT_MS);
+          if (typeof (killTimer as unknown as { unref?: () => void }).unref === 'function') {
+            (killTimer as unknown as { unref: () => void }).unref();
+          }
 
           child.on('error', err =>
             settle(() =>

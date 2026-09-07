@@ -3,6 +3,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.KokoroEngineError = exports.KokoroModelNotConfiguredError = void 0;
 exports.createKokoroTtsEngine = createKokoroTtsEngine;
 const promises_1 = require("fs/promises");
+const path_1 = require("path");
+const kokoroG2p_1 = require("./kokoroG2p");
 class KokoroModelNotConfiguredError extends Error {
     constructor() {
         super('Kokoro-82M TTS model is not configured. The app will fall back to OS-native speech.');
@@ -61,43 +63,14 @@ function buildVocabFromTokenizerJson(tokenizerJson) {
     }
     return vocab;
 }
-function normalizeText(text) {
-    let out = text.toLowerCase();
-    out = out
-        .replace(/\bcan't\b/g, 'cannot')
-        .replace(/\bwon't\b/g, 'will not')
-        .replace(/\bdon't\b/g, 'do not')
-        .replace(/\bit's\b/g, 'it is')
-        .replace(/\bi'm\b/g, 'i am')
-        .replace(/\bthat's\b/g, 'that is')
-        .replace(/\bwhat's\b/g, 'what is')
-        .replace(/\bthere's\b/g, 'there is')
-        .replace(/\bthey're\b/g, 'they are')
-        .replace(/\byou're\b/g, 'you are')
-        .replace(/\bwe're\b/g, 'we are')
-        .replace(/\bhe's\b/g, 'he is')
-        .replace(/\bshe's\b/g, 'she is')
-        .replace(/\blet's\b/g, 'let us')
-        .replace(/\bisn't\b/g, 'is not')
-        .replace(/\baren't\b/g, 'are not')
-        .replace(/\bwasn't\b/g, 'was not')
-        .replace(/\bweren't\b/g, 'were not')
-        .replace(/\bhasn't\b/g, 'has not')
-        .replace(/\bhaven't\b/g, 'have not')
-        .replace(/\bhadn't\b/g, 'had not')
-        .replace(/\bdoesn't\b/g, 'does not')
-        .replace(/\bdidn't\b/g, 'did not')
-        .replace(/\bcouldn't\b/g, 'could not')
-        .replace(/\bwouldn't\b/g, 'would not')
-        .replace(/\bshouldn't\b/g, 'should not');
-    out = out.replace(/\./g, '. ');
-    out = out.replace(/\s+/g, ' ').trim();
-    return out;
-}
 /**
- * Tokenizes text using the loaded vocabulary. Each character is mapped to
- * its token ID, or 0 (unknown) if not found. The Kokoro model expects
- * pad token 0 at the start and end of the sequence.
+ * Tokenizes a phoneme string using the loaded vocabulary. Each symbol is
+ * mapped to its token ID, or 0 (unknown/pad) if not found. The Kokoro model
+ * expects pad token 0 at the start and end of the sequence.
+ *
+ * NOTE: the input must already be IPA phonemes (see phonemize()), NOT raw
+ * text — feeding raw characters maps letters to unrelated phoneme slots and
+ * produces garbled audio.
  */
 function tokenize(text, vocab) {
     const ids = [];
@@ -127,6 +100,10 @@ function createKokoroTtsEngine(getConfig) {
     let voiceLoadedPath = '';
     let vocab = null;
     let vocabLoadedPath = '';
+    let lexiconWarned = false;
+    async function getLexiconPath(config) {
+        return config.lexiconPath ?? (0, path_1.join)((0, path_1.dirname)(config.tokenizerPath), 'cmudict.dict');
+    }
     async function getSession(config) {
         if (session && sessionModelPath === config.modelPath)
             return session;
@@ -185,14 +162,22 @@ function createKokoroTtsEngine(getConfig) {
             const ort = loadOnnxRuntime();
             const voice = await getVoice(config);
             const vocabMap = await getVocab(config);
-            const normalized = normalizeText(text);
-            let tokenIds = tokenize(normalized, vocabMap);
+            // G2P front-end: raw text -> IPA phonemes via the CMUdict lexicon. The
+            // model is trained on phoneme sequences; feeding raw characters maps
+            // letters to unrelated phoneme slots and produces garbled audio.
+            const lexicon = await (0, kokoroG2p_1.loadLexicon)(await getLexiconPath(config));
+            if (!lexicon && !lexiconWarned) {
+                lexiconWarned = true;
+                console.warn('[kokoroTtsEngine] cmudict.dict not found — falling back to character tokenization (pronunciation will be degraded).');
+            }
+            const phonemes = (0, kokoroG2p_1.phonemize)(text, lexicon);
+            let tokenIds = tokenize(phonemes, vocabMap);
             if (tokenIds.length > MAX_TOKENS) {
                 // The encoder's Expand node rejects input_ids longer than 512 with
                 // "invalid expand shape". Truncate the content tokens while keeping the
                 // leading/trailing pad-0 that Kokoro expects.
                 tokenIds = [0, ...tokenIds.slice(1, MAX_TOKENS - 1), 0];
-                console.log(`[kokoroTtsEngine] text exceeds model max length (${MAX_TOKENS - 2} chars); truncating to ${MAX_TOKENS} tokens`);
+                console.log(`[kokoroTtsEngine] text exceeds model max length (${MAX_TOKENS - 2} tokens); truncating to ${MAX_TOKENS} tokens`);
             }
             if (tokenIds.length <= 2) {
                 throw new KokoroEngineError('Text produced no tokens after normalization.');

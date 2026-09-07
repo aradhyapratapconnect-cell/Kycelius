@@ -383,7 +383,27 @@ function seedDefaults() {
         const ids = providerRegistry_1.providerRegistry.listPresets('stt').map(p => p.presetKey);
         (0, vitest_1.expect)(ids).toEqual(['custom_stt']);
         const tts = providerRegistry_1.providerRegistry.listPresets('tts').map(p => p.presetKey);
-        (0, vitest_1.expect)(tts).toEqual(['custom_tts']);
+        (0, vitest_1.expect)(tts).toEqual(['custom_tts', 'elevenlabs_tts', 'fishaudio_tts']);
+    });
+    (0, vitest_1.it)('BYOK TTS presets seed dormant on the shared cloud_tts schema (no migration)', () => {
+        for (const presetKey of ['elevenlabs_tts', 'fishaudio_tts']) {
+            const row = providerRegistry_1.providerRegistry.add({ capability: 'tts', presetKey });
+            (0, vitest_1.expect)(row).toMatchObject({
+                capability: 'tts',
+                schema: 'cloud_tts',
+                enabled: false,
+                hasKey: false,
+                isDefault: false,
+            });
+        }
+        (0, vitest_1.expect)(providerRegistry_1.providerRegistry.get('elevenlabs_tts')).toMatchObject({
+            displayName: 'ElevenLabs',
+            baseUrl: 'https://api.elevenlabs.io/v1',
+        });
+        (0, vitest_1.expect)(providerRegistry_1.providerRegistry.get('fishaudio_tts')).toMatchObject({
+            displayName: 'Fish Audio',
+            baseUrl: 'https://api.fish.audio',
+        });
     });
     (0, vitest_1.it)('recognizes voice rows as providers but never as LLM providers', () => {
         const { sttId, ttsId } = addVoice();

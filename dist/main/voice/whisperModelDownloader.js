@@ -10,6 +10,7 @@ const path_1 = require("path");
 const fs_1 = require("fs");
 const promises_2 = require("stream/promises");
 const stream_1 = require("stream");
+const timeouts_1 = require("../utils/timeouts");
 // EF-02: the old `ggml-org/whisper` repo is gated and now returns 401 to
 // unauthenticated requests. The public mirror that hosts the whisper.cpp models
 // is `ggerganov/whisper.cpp` (canonical home for ggml Whisper weights). Verified
@@ -86,8 +87,10 @@ async function downloadAttempt(url, destPath, onProgress) {
     // must not carry an Authorization header — if one ever appears, that's the
     // first place to hunt for the 401.
     console.log(`[whisper-model-download] GET ${url}`);
-    const response = await fetch(url, {
+    // EF-10: enforced per-attempt timeout so a stalled mirror cannot hang the app.
+    const response = await (0, timeouts_1.fetchWithTimeout)(url, {
         headers: { 'User-Agent': 'kyclius-desktop/2.6.1' },
+        timeoutMs: timeouts_1.MODEL_DOWNLOAD_TIMEOUT_MS,
     });
     console.log(`[whisper-model-download] ${response.status} ${response.statusText} for ${url}` +
         (response.headers.has('authorization') ? ' (NOTE: response Authorization present)' : ''));

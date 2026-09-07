@@ -31,6 +31,8 @@ interface ChatStore {
   cancelGeneration: () => void;
   stopPlayback: () => void;
   startNewConversation: () => void;
+  /** T-27: continue an existing conversation — loads its scrollback as the live session. */
+  openConversation: (conversationId: string) => Promise<boolean>;
 }
 
 const newId = () =>
@@ -214,6 +216,37 @@ export const useChatStore = create<ChatStore>((set, get) => {
         streaming: null,
       });
       useAssistantStore.getState().setAssistantState('idle');
+    },
+
+    // T-27: "Open full conversation" from the history preview. The main
+    // process points the live session at the existing conversation; the
+    // renderer mirrors its scrollback so the user continues where it left off.
+    openConversation: async (conversationId: string) => {
+      if (!window.kyclius?.openConversation || get().isSending) return false;
+      try {
+        const rows = await window.kyclius.openConversation(conversationId);
+        activeTurnId = null;
+        window.kyclius?.stopSpeaking();
+        set({
+          messages: (Array.isArray(rows) ? rows : []).map(m => ({
+            id: m.id,
+            role: m.role,
+            content: m.content,
+            input_mode: m.input_mode,
+            provider: m.provider,
+            model: m.model,
+            created_at: m.created_at,
+          })),
+          isWorkspaceOpen: true,
+          isSending: false,
+          speakingMessageId: null,
+          streaming: null,
+        });
+        useAssistantStore.getState().setAssistantState('idle');
+        return true;
+      } catch {
+        return false;
+      }
     },
   };
 });

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { createCloudTtsEngine, listCloudVoiceModels } from '../engines/cloudTtsEngine';
+import { createCloudTtsEngine, listCloudVoiceModels, ttsModelRequired } from '../engines/cloudTtsEngine';
 import { encodePcm16Wav } from '../pcmWav';
 
 function wavResponse(pcm: Float32Array, sampleRate: number, status = 200): Response {
@@ -90,6 +90,19 @@ describe('createCloudTtsEngine (N-08)', () => {
     });
 
     await expect(engine.synthesize('hello')).rejects.toThrow(/silent|WAV/i);
+  });
+});
+
+describe('ttsModelRequired (BYOK resolution gate)', () => {
+  it('requires a model/voice id for generic, ElevenLabs, and unknown presets', () => {
+    expect(ttsModelRequired(undefined)).toBe(true);
+    expect(ttsModelRequired('custom_tts')).toBe(true);
+    expect(ttsModelRequired('elevenlabs_tts')).toBe(true);
+    expect(ttsModelRequired('something_else')).toBe(true);
+  });
+
+  it('waives the requirement for Fish Audio (empty = default voice)', () => {
+    expect(ttsModelRequired('fishaudio_tts')).toBe(false);
   });
 });
 

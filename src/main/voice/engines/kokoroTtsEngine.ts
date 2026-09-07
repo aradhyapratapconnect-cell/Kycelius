@@ -1,9 +1,13 @@
 import { readFile } from 'fs/promises';
+import { dirname, join } from 'path';
+import { loadLexicon, phonemize } from './kokoroG2p';
 
 export interface KokoroTtsConfig {
   modelPath: string;
   voicePath: string;
   tokenizerPath: string;
+  /** CMUdict lexicon for G2P; defaults to cmudict.dict next to the tokenizer. */
+  lexiconPath?: string;
 }
 
 export interface TtsEngine {
@@ -95,46 +99,14 @@ function buildVocabFromTokenizerJson(tokenizerJson: TokenizerJson): Map<string, 
   return vocab;
 }
 
-function normalizeText(text: string): string {
-  let out = text.toLowerCase();
-
-  out = out
-    .replace(/\bcan't\b/g, 'cannot')
-    .replace(/\bwon't\b/g, 'will not')
-    .replace(/\bdon't\b/g, 'do not')
-    .replace(/\bit's\b/g, 'it is')
-    .replace(/\bi'm\b/g, 'i am')
-    .replace(/\bthat's\b/g, 'that is')
-    .replace(/\bwhat's\b/g, 'what is')
-    .replace(/\bthere's\b/g, 'there is')
-    .replace(/\bthey're\b/g, 'they are')
-    .replace(/\byou're\b/g, 'you are')
-    .replace(/\bwe're\b/g, 'we are')
-    .replace(/\bhe's\b/g, 'he is')
-    .replace(/\bshe's\b/g, 'she is')
-    .replace(/\blet's\b/g, 'let us')
-    .replace(/\bisn't\b/g, 'is not')
-    .replace(/\baren't\b/g, 'are not')
-    .replace(/\bwasn't\b/g, 'was not')
-    .replace(/\bweren't\b/g, 'were not')
-    .replace(/\bhasn't\b/g, 'has not')
-    .replace(/\bhaven't\b/g, 'have not')
-    .replace(/\bhadn't\b/g, 'had not')
-    .replace(/\bdoesn't\b/g, 'does not')
-    .replace(/\bdidn't\b/g, 'did not')
-    .replace(/\bcouldn't\b/g, 'could not')
-    .replace(/\bwouldn't\b/g, 'would not')
-    .replace(/\bshouldn't\b/g, 'should not');
-
-  out = out.replace(/\./g, '. ');
-  out = out.replace(/\s+/g, ' ').trim();
-  return out;
-}
-
 /**
- * Tokenizes text using the loaded vocabulary. Each character is mapped to
- * its token ID, or 0 (unknown) if not found. The Kokoro model expects
- * pad token 0 at the start and end of the sequence.
+ * Tokenizes a phoneme string using the loaded vocabulary. Each symbol is
+ * mapped to its token ID, or 0 (unknown/pad) if not found. The Kokoro model
+ * expects pad token 0 at the start and end of the sequence.
+ *
+ * NOTE: the input must already be IPA phonemes (see phonemize()), NOT raw
+ * text — feeding raw characters maps letters to unrelated phoneme slots and
+ * produces garbled audio.
  */
 function tokenize(text: string, vocab: Map<string, number>): number[] {
   const ids: number[] = [];
@@ -167,6 +139,11 @@ export function createKokoroTtsEngine(
   let voiceLoadedPath = '';
   let vocab: Map<string, number> | null = null;
   let vocabLoadedPath = '';
+  let lexiconWarned = false;
+
+  async function getLexiconPath(config: KokoroTtsConfig): Promise<string> {
+    return config.lexiconPath ?? join(dirname(config.tokenizerPath), 'cmudict.dict');
+  }
 
   async function getSession(config: KokoroTtsConfig): Promise<OrtSessionLike> {
     if (session && sessionModelPath === config.modelPath) return session;
@@ -226,8 +203,18 @@ export function createKokoroTtsEngine(
       const voice = await getVoice(config);
       const vocabMap = await getVocab(config);
 
-      const normalized = normalizeText(text);
-      let tokenIds = tokenize(normalized, vocabMap);
+      // G2P front-end: raw text -> IPA phonemes via the CMUdict lexicon. The
+      // model is trained on phoneme sequences; feeding raw characters maps
+      // letters to unrelated phoneme slots and produces garbled audio.
+      const lexicon = await loadLexicon(await getLexiconPath(config));
+      if (!lexicon && !lexiconWarned) {
+        lexiconWarned = true;
+        console.warn(
+          '[kokoroTtsEngine] cmudict.dict not found — falling back to character tokenization (pronunciation will be degraded).'
+        );
+      }
+      const phonemes = phonemize(text, lexicon);
+      let tokenIds = tokenize(phonemes, vocabMap);
 
       if (tokenIds.length > MAX_TOKENS) {
         // The encoder's Expand node rejects input_ids longer than 512 with
@@ -237,7 +224,7 @@ export function createKokoroTtsEngine(
         console.log(
           `[kokoroTtsEngine] text exceeds model max length (${
             MAX_TOKENS - 2
-          } chars); truncating to ${MAX_TOKENS} tokens`
+          } tokens); truncating to ${MAX_TOKENS} tokens`
         );
       }
 

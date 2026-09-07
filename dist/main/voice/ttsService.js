@@ -34,6 +34,8 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ttsService = void 0;
+exports.createEngineForCloudTts = createEngineForCloudTts;
+exports.isFailLoudTtsProvider = isFailLoudTtsProvider;
 exports.buildSpeakCommand = buildSpeakCommand;
 const child_process_1 = require("child_process");
 const promises_1 = require("fs/promises");
@@ -41,7 +43,39 @@ const path_1 = require("path");
 const os_1 = require("os");
 const kokoroTtsEngine_1 = require("./engines/kokoroTtsEngine");
 const cloudTtsEngine_1 = require("./engines/cloudTtsEngine");
+const elevenLabsTtsEngine_1 = require("./engines/elevenLabsTtsEngine");
+const fishAudioTtsEngine_1 = require("./engines/fishAudioTtsEngine");
 const pcmWav_1 = require("./pcmWav");
+const timeouts_1 = require("../utils/timeouts");
+/** Picks the TTS API shape from the registry preset key. Unknown/absent keys
+ *  stay on the generic OpenAI-compatible speech endpoint. */
+function createEngineForCloudTts(cloud) {
+    if (cloud.presetKey === elevenLabsTtsEngine_1.ELEVENLABS_PRESET_KEY) {
+        return (0, elevenLabsTtsEngine_1.createElevenLabsTtsEngine)({
+            id: cloud.id,
+            displayName: cloud.displayName,
+            baseUrl: cloud.baseUrl,
+            apiKey: cloud.apiKey,
+            voiceId: cloud.model,
+        });
+    }
+    if (cloud.presetKey === fishAudioTtsEngine_1.FISHAUDIO_PRESET_KEY) {
+        return (0, fishAudioTtsEngine_1.createFishAudioTtsEngine)({
+            id: cloud.id,
+            displayName: cloud.displayName,
+            baseUrl: cloud.baseUrl,
+            apiKey: cloud.apiKey,
+            referenceId: cloud.model,
+        });
+    }
+    return (0, cloudTtsEngine_1.createCloudTtsEngine)(cloud);
+}
+/** BYOK voices (ElevenLabs / Fish Audio) fail loudly: a bad key, network
+ *  error, or rate limit surfaces as a visible error instead of silently
+ *  switching to a different voice behind the user's back. */
+function isFailLoudTtsProvider(presetKey) {
+    return presetKey === elevenLabsTtsEngine_1.ELEVENLABS_PRESET_KEY || presetKey === fishAudioTtsEngine_1.FISHAUDIO_PRESET_KEY;
+}
 function isElectronAvailable() {
     try {
         // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -181,15 +215,20 @@ class TtsService {
             return;
         this.stopSpeaking();
         // N-08: cloud-first. A configured + enabled cloud TTS provider speaks the
-        // utterance; on any failure we fall through to the local chain below.
+        // utterance; on any failure we fall through to the local chain below —
+        // EXCEPT for BYOK voices (ElevenLabs / Fish Audio), which fail loudly
+        // with a visible error instead of silently switching voices.
         const cloud = this.resolveCloudTts?.() ?? null;
         if (cloud) {
             try {
-                await this.speakViaEngine((0, cloudTtsEngine_1.createCloudTtsEngine)(cloud), text);
+                await this.speakViaEngine(createEngineForCloudTts(cloud), text);
                 return;
             }
             catch (err) {
                 const reason = err instanceof Error ? err.message : String(err);
+                if (isFailLoudTtsProvider(cloud.presetKey)) {
+                    throw new Error(`${cloud.displayName} TTS failed (${reason}). Check the API key and voice in Settings.`);
+                }
                 if (Date.now() - this.cloudNoticeAt > 30_000) {
                     this.cloudNoticeAt = Date.now();
                     this.noticeSender?.(`Cloud TTS (${cloud.displayName}) failed (${reason}). Using the local voice instead.`);
@@ -215,7 +254,8 @@ class TtsService {
         }
     }
     async speakViaEngine(engine, text) {
-        const pcm = await engine.synthesize(text);
+        // EF-10: synthesis itself is bounded so a hung engine cannot freeze speak().
+        const pcm = await (0, timeouts_1.withTimeout)(engine.synthesize(text), timeouts_1.TTS_SPAWN_TIMEOUT_MS, `TTS synthesis (${engine.id})`);
         if (pcm.length === 0)
             return;
         // An OSS engine reports its own sample rate; older engines default to the
@@ -227,7 +267,8 @@ class TtsService {
             await (0, promises_1.writeFile)(wavPath, wav);
             const platform = process.platform;
             const command = buildOsPlayerCommand(platform, wavPath);
-            await new Promise((resolve, reject) => {
+            // EF-10: playback is bounded and kills the player on timeout.
+            await (0, timeouts_1.withTimeout)(new Promise((resolve, reject) => {
                 let settled = false;
                 const child = (0, child_process_1.spawn)(command.file, command.args, {
                     stdio: ['ignore', 'ignore', 'ignore'],
@@ -255,6 +296,15 @@ class TtsService {
                         })));
                     }
                 });
+            }), timeouts_1.TTS_SPAWN_TIMEOUT_MS, 'Audio playback').catch(err => {
+                try {
+                    this.currentProcess?.kill();
+                }
+                catch {
+                    // already exited
+                }
+                this.currentProcess = null;
+                throw err;
             });
         }
         finally {
@@ -265,7 +315,8 @@ class TtsService {
     async speakViaOs(text) {
         const platform = process.platform;
         const command = buildSpeakCommand(platform, text);
-        await new Promise((resolve, reject) => {
+        // EF-10: OS TTS is bounded and kills the speaker on timeout.
+        await (0, timeouts_1.withTimeout)(new Promise((resolve, reject) => {
             let settled = false;
             let stderrOutput = '';
             const child = (0, child_process_1.spawn)(command.file, command.args, {
@@ -301,6 +352,15 @@ class TtsService {
                 child.stdin.write(text);
                 child.stdin.end();
             }
+        }), timeouts_1.TTS_SPAWN_TIMEOUT_MS, 'System speech').catch(err => {
+            try {
+                this.currentProcess?.kill();
+            }
+            catch {
+                // already exited
+            }
+            this.currentProcess = null;
+            throw err;
         });
     }
     stopSpeaking() {

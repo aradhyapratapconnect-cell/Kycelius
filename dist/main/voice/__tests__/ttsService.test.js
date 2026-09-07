@@ -115,4 +115,53 @@ class FakeChild {
         first.emitClose(0);
         await Promise.allSettled([p1]);
     });
+    (0, vitest_1.it)('BYOK cloud failure (bad key) throws visibly instead of silently falling back to local', async () => {
+        const fetchMock = vitest_1.vi.fn();
+        fetchMock.mockResolvedValue(new Response('Unauthorized', { status: 401 }));
+        vitest_1.vi.stubGlobal('fetch', fetchMock);
+        ttsService_1.ttsService.installCloud(() => ({
+            id: 'elevenlabs_tts',
+            displayName: 'ElevenLabs',
+            baseUrl: 'https://api.elevenlabs.io/v1',
+            apiKey: 'bad-key',
+            model: '21m00Tcm4TlvDq8ikWAM',
+            presetKey: 'elevenlabs_tts',
+        }), () => { });
+        try {
+            await (0, vitest_1.expect)(ttsService_1.ttsService.speak('hello')).rejects.toThrow(/ElevenLabs TTS failed.*rejected the API key/);
+            // No local engine was spawned as a silent replacement.
+            (0, vitest_1.expect)(spawnMock).not.toHaveBeenCalled();
+        }
+        finally {
+            ttsService_1.ttsService.installCloud(() => null, () => { });
+            vitest_1.vi.unstubAllGlobals();
+        }
+    });
+    (0, vitest_1.it)('generic cloud TTS failure still falls back to local (existing N-08 behavior)', async () => {
+        const fetchMock = vitest_1.vi.fn();
+        fetchMock.mockResolvedValue(new Response('Unauthorized', { status: 401 }));
+        vitest_1.vi.stubGlobal('fetch', fetchMock);
+        const child = new FakeChild();
+        spawnMock.mockImplementation(() => child);
+        ttsService_1.ttsService.installCloud(() => ({
+            id: 'row-9',
+            displayName: 'Custom Cloud TTS',
+            baseUrl: 'https://tts.example.com/v1',
+            apiKey: 'bad-key',
+            model: 'alloy',
+        }), () => { });
+        try {
+            const promise = ttsService_1.ttsService.speak('hello');
+            // The cloud attempt awaits fetch first — wait until the local fallback
+            // actually spawns before closing it.
+            await vitest_1.vi.waitFor(() => (0, vitest_1.expect)(spawnMock).toHaveBeenCalled());
+            child.emitClose(0);
+            await (0, vitest_1.expect)(promise).resolves.toBeUndefined();
+            (0, vitest_1.expect)(spawnMock).toHaveBeenCalled();
+        }
+        finally {
+            ttsService_1.ttsService.installCloud(() => null, () => { });
+            vitest_1.vi.unstubAllGlobals();
+        }
+    });
 });

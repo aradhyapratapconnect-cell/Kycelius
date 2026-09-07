@@ -10,7 +10,10 @@
  * commands ("open vscode", "test auto ...") still work without any LLM.
  */
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.EMPTY_REPLY_MESSAGE = exports.TOOL_LOOP_EXHAUSTED_MESSAGE = void 0;
+exports.emptyTurnMessage = emptyTurnMessage;
 exports.cancelCurrentTurn = cancelCurrentTurn;
+exports.getOrCreateActiveConversationId = getOrCreateActiveConversationId;
 exports.runTurn = runTurn;
 exports.registerChatHandlers = registerChatHandlers;
 const electron_1 = require("electron");
@@ -24,8 +27,33 @@ const context_1 = require("../files/context");
 const attachmentContext_1 = require("../files/attachmentContext");
 const attachFile_1 = require("../tools/attachFile");
 const agentBundles_1 = require("../agents/agentBundles");
+const timeouts_1 = require("../utils/timeouts");
+const toolCallSanitizer_1 = require("../agent/toolCallSanitizer");
 const MAX_TOOL_ROUNDS = 6;
 const HISTORY_MESSAGE_LIMIT = 20;
+/**
+ * EF-13: ordinary conversational turns must NEVER emit Autonomous Mode's
+ * plan-halt notice. That notice belongs exclusively to planner.runPlan's
+ * stopped_by_limit path. The old code returned the halt text whenever
+ * finalText stayed null — which happens both when the model loops on tools
+ * for all MAX_TOOL_ROUNDS *and* when a single reply comes back empty with
+ * zero tool calls (e.g. an empty provider response to "what can you do").
+ * Both cases were misreported as a plan ceiling, and because there was no
+ * per-turn/per-conversation tracking, every later message kept showing it.
+ *
+ * Fix: per-turn tool-round tracking, local to this runTurn call (no
+ * persistent/global counter, nothing to leak across conversations or to
+ * reset). Empty replies and tool-loop exhaustion get distinct, honest
+ * messages that never mention the autonomous plan ceiling.
+ */
+exports.TOOL_LOOP_EXHAUSTED_MESSAGE = 'I tried several actions in a row without reaching a final answer. Tell me what to do next, or break the task into smaller requests.';
+exports.EMPTY_REPLY_MESSAGE = "I didn't get a usable reply just now — try again, or rephrase your request.";
+/** Pure helper so the EF-13 contract has direct unit coverage. */
+function emptyTurnMessage(toolRoundsExecuted) {
+    return toolRoundsExecuted >= MAX_TOOL_ROUNDS
+        ? exports.TOOL_LOOP_EXHAUSTED_MESSAGE
+        : exports.EMPTY_REPLY_MESSAGE;
+}
 /**
  * Set by the renderer's "Stop generating" control (T-02). The in-flight turn
  * checks it between LLM rounds and before persisting a reply, so a cancelled
@@ -54,6 +82,20 @@ function getActiveConversationId(firstUserText) {
         return activeConversationId;
     }
     const convo = db_1.conversations.create(titleFrom(firstUserText));
+    activeConversationId = convo.id;
+    return convo.id;
+}
+/**
+ * EF-11: resolves the conversation attachments belong to, creating it lazily
+ * when the user attaches before their first message. Shared by the picker and
+ * drag-and-drop IPC so both funnel into the same conversation the next turn
+ * will read context from.
+ */
+function getOrCreateActiveConversationId(hint = 'New conversation') {
+    if (activeConversationId && db_1.conversations.getById(activeConversationId)) {
+        return activeConversationId;
+    }
+    const convo = db_1.conversations.create(titleFrom(hint));
     activeConversationId = convo.id;
     return convo.id;
 }
@@ -155,6 +197,11 @@ async function runTurn(options) {
     llmMessages.push(...buildHistory(conversationId), { role: 'user', content: commandText });
     const tools = getToolDefinitions(agentProfile);
     let finalText = null;
+    // EF-13: per-turn count of rounds that actually executed tools. Local to
+    // this turn only — never a global/session counter — so one conversation's
+    // tool activity cannot trip another conversation's ceiling, and there is
+    // nothing that persists (or needs resetting) between turns.
+    let toolRoundsExecuted = 0;
     // N-04: which provider/model served the final LLM call, attributed to the
     // reply so the routing decision is visible in chat and stored on the row.
     let usedRoute = null;
@@ -184,6 +231,7 @@ async function runTurn(options) {
             return { success: true, message: 'Stopped.' };
         }
         if (toolCalls.length > 0) {
+            toolRoundsExecuted += 1;
             llmMessages.push({
                 role: 'assistant',
                 content: assistantText,
@@ -209,9 +257,12 @@ async function runTurn(options) {
         break;
     }
     if (finalText === null) {
-        finalText =
-            "I stopped after quite a few consecutive actions to stay safe. Here's where things stand — tell me what to do next, or break the task into smaller requests.";
+        // EF-13: never the autonomous plan-halt notice here — see above.
+        finalText = emptyTurnMessage(toolRoundsExecuted);
     }
+    // EF-12: final gate — raw/unexecuted tool-call syntax (native or
+    // structured-prompt fallback) never reaches the user as visible text.
+    finalText = (0, toolCallSanitizer_1.sanitizeAssistantText)(finalText);
     broadcast('idle');
     // T-11 auto-learning: persist any durable facts this exchange revealed
     // ("my default editor is VS Code") before the turn is wrapped up.
@@ -323,9 +374,19 @@ function registerChatHandlers() {
             }
             (0, assistantState_1.broadcastAssistantState)('thinking');
             turnCancelled = false;
-            return await runAgentTurn(trimmed, mode, streamTurnId);
+            // EF-10: enforced wall-clock ceiling on the whole turn. A hung LLM
+            // round, tool loop, or attachment read cannot block the app
+            // indefinitely — the turn aborts with an honest message instead.
+            return await (0, timeouts_1.withTimeout)(runAgentTurn(trimmed, mode, streamTurnId), timeouts_1.TURN_TIMEOUT_MS, 'Assistant turn');
         }
         catch (err) {
+            (0, assistantState_1.broadcastAssistantState)('error');
+            if (err instanceof timeouts_1.TimeoutError) {
+                return {
+                    success: false,
+                    message: 'Sorry — that took too long and I stopped before finishing. Try again, or break the request into smaller steps.',
+                };
+            }
             (0, assistantState_1.broadcastAssistantState)('error');
             return {
                 success: false,
@@ -350,5 +411,67 @@ function registerChatHandlers() {
     // T-22: dashboard stat cards — derived live from the local tables.
     electron_1.ipcMain.handle('kyclius:get-dashboard-stats', () => {
         return db_1.messages.getStats();
+    });
+    // T-27: conversation history preview — read-only scrollback for one
+    // conversation. Renderer-only modal (no new window); these two reads feed it.
+    electron_1.ipcMain.handle('kyclius:list-conversations', (_event, limit = 100, offset = 0) => {
+        const safeLimit = Math.min(Math.max(Number(limit) || 100, 1), 500);
+        const safeOffset = Math.max(Number(offset) || 0, 0);
+        return db_1.conversations
+            .getAll()
+            .slice(safeOffset, safeOffset + safeLimit)
+            .map(c => ({
+            id: c.id,
+            title: c.title,
+            created_at: c.created_at,
+            updated_at: c.updated_at,
+            messageCount: db_1.messages.getByConversation(c.id).length,
+        }));
+    });
+    electron_1.ipcMain.handle('kyclius:get-conversation-messages', (_event, conversationId) => {
+        if (typeof conversationId !== 'string' || conversationId.trim().length === 0) {
+            throw new Error('A conversation id is required.');
+        }
+        const convo = db_1.conversations.getById(conversationId);
+        if (!convo)
+            throw new Error('That conversation no longer exists.');
+        return {
+            conversation: {
+                id: convo.id,
+                title: convo.title,
+                created_at: convo.created_at,
+                updated_at: convo.updated_at,
+            },
+            messages: db_1.messages.getByConversation(convo.id).map(m => ({
+                id: m.id,
+                role: m.role,
+                content: m.content,
+                input_mode: m.input_mode ?? undefined,
+                provider: m.provider ?? undefined,
+                model: m.model ?? undefined,
+                created_at: m.created_at,
+            })),
+        };
+    });
+    // T-27: "Open full conversation" — point the live session at an existing
+    // conversation and hand its scrollback to the renderer to continue from.
+    electron_1.ipcMain.handle('kyclius:open-conversation', (_event, conversationId) => {
+        if (typeof conversationId !== 'string' || conversationId.trim().length === 0) {
+            throw new Error('A conversation id is required.');
+        }
+        const convo = db_1.conversations.getById(conversationId);
+        if (!convo)
+            throw new Error('That conversation no longer exists.');
+        activeConversationId = convo.id;
+        touchConversation(convo.id);
+        return db_1.messages.getByConversation(convo.id).map(m => ({
+            id: m.id,
+            role: m.role,
+            content: m.content,
+            input_mode: m.input_mode ?? undefined,
+            provider: m.provider ?? undefined,
+            model: m.model ?? undefined,
+            created_at: m.created_at,
+        }));
     });
 }

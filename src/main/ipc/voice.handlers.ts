@@ -14,6 +14,7 @@ import {
 } from '../voice/engines/cloudSttEngine';
 import {
   createCloudTtsEngine,
+  ttsModelRequired,
   type CloudTtsConfig,
 } from '../voice/engines/cloudTtsEngine';
 import { providerRegistry } from '../llm/providerRegistry';
@@ -176,8 +177,10 @@ async function resolveEffectiveSttEngine(): Promise<{ engine: SttEngineId; fallb
 // ---------------------------------------------------------------------------
 // N-08: cloud STT/TTS resolution from the shared `providers` table.
 // A provider is used when it's the active default FOR ITS CAPABILITY and it is
-// enabled, has a stored key, a base URL, and a model/voice id. Anything less
-// (unset, disabled, key removed, no model) means local-first — never silent.
+// enabled, has a stored key, a base URL, and a model/voice id — except Fish
+// Audio, whose reference voice is optional (empty = default voice). Anything
+// less (unset, disabled, key removed, no model where one is required) means
+// local-first — never silent.
 // ---------------------------------------------------------------------------
 
 function cloudConfigFor(capability: 'stt' | 'tts'): CloudSttConfig | CloudTtsConfig | null {
@@ -186,7 +189,9 @@ function cloudConfigFor(capability: 'stt' | 'tts'): CloudSttConfig | CloudTtsCon
   const row = providerRegistry.get(id);
   if (!row || !row.enabled || !row.hasKey || !row.baseUrl) return null;
   const model = providerRegistry.getConfiguredModel(id);
-  if (!model) return null;
+  // Fish Audio's reference voice is optional (empty = default voice), so it
+  // still resolves to cloud — every other provider needs a model/voice id.
+  if (!model && ttsModelRequired(row.presetKey)) return null;
   let apiKey: string;
   try {
     apiKey = providerRegistry.getDecryptedApiKey(id);
@@ -207,7 +212,11 @@ function resolveCloudSttProvider(): CloudSttConfig | null {
 }
 
 function resolveCloudTtsProvider(): CloudTtsConfig | null {
-  return cloudConfigFor('tts') as CloudTtsConfig | null;
+  const base = cloudConfigFor('tts');
+  if (!base) return null;
+  // The TTS engine factory branches on the registry preset key (ElevenLabs /
+  // Fish Audio vs. generic OpenAI-compatible) — STT never reads this field.
+  return { ...base, presetKey: providerRegistry.get(base.id)?.presetKey };
 }
 
 /**

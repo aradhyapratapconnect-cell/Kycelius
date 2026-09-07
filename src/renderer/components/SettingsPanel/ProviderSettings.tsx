@@ -42,6 +42,8 @@ const PRESET_HELP_URL: Record<string, string> = {
   fireworks: 'https://fireworks.ai/account/api-keys',
   mistral: 'https://console.mistral.ai/api-keys/',
   deepseek: 'https://platform.deepseek.com/api_keys',
+  elevenlabs_tts: 'https://elevenlabs.io/app/settings/api-keys',
+  fishaudio_tts: 'https://fish.audio/app/developers/',
 };
 
 function StoredBadge({ stored }: { stored: boolean }) {
@@ -302,6 +304,18 @@ function ModelField({
 
   const canFetchModels = capability === 'llm';
 
+  /** BYOK TTS voices use the model field for the provider's voice id. */
+  const voicePlaceholder =
+    provider.presetKey === 'elevenlabs_tts'
+      ? 'e.g. 21m00Tcm4TlvDq8ikWAM (Rachel) — any voice ID from ElevenLabs > Voices'
+      : provider.presetKey === 'fishaudio_tts'
+        ? 'Cloned-voice reference ID (optional — empty uses the default voice)'
+        : capability === 'tts'
+          ? 'e.g. alloy'
+          : capability === 'stt'
+            ? 'e.g. whisper-1'
+            : undefined;
+
   return (
     <div className="space-y-1.5">
       <div className="flex items-center justify-between">
@@ -331,7 +345,7 @@ function ModelField({
           spellCheck={false}
           autoComplete="off"
           aria-label={`${provider.displayName} model ID`}
-          placeholder={capability === 'tts' ? 'e.g. alloy' : capability === 'stt' ? 'e.g. whisper-1' : undefined}
+          placeholder={voicePlaceholder}
           className="flex-1 min-w-0 rounded-lg border border-outline-variant/40 bg-surface-container px-3 py-2 font-mono text-[13px] text-ink focus:outline-none focus:ring-2 focus:ring-blossom/40 focus:border-blossom"
         />
         {models.length > 0 && (

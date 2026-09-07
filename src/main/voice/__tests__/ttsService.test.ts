@@ -148,4 +148,61 @@ describe('ttsService.speak', () => {
     first.emitClose(0);
     await Promise.allSettled([p1]);
   });
+
+  it('BYOK cloud failure (bad key) throws visibly instead of silently falling back to local', async () => {
+    const fetchMock = vi.fn();
+    fetchMock.mockResolvedValue(new Response('Unauthorized', { status: 401 }));
+    vi.stubGlobal('fetch', fetchMock);
+    ttsService.installCloud(
+      () => ({
+        id: 'elevenlabs_tts',
+        displayName: 'ElevenLabs',
+        baseUrl: 'https://api.elevenlabs.io/v1',
+        apiKey: 'bad-key',
+        model: '21m00Tcm4TlvDq8ikWAM',
+        presetKey: 'elevenlabs_tts',
+      }),
+      () => {}
+    );
+    try {
+      await expect(ttsService.speak('hello')).rejects.toThrow(
+        /ElevenLabs TTS failed.*rejected the API key/
+      );
+      // No local engine was spawned as a silent replacement.
+      expect(spawnMock).not.toHaveBeenCalled();
+    } finally {
+      ttsService.installCloud(() => null, () => {});
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('generic cloud TTS failure still falls back to local (existing N-08 behavior)', async () => {
+    const fetchMock = vi.fn();
+    fetchMock.mockResolvedValue(new Response('Unauthorized', { status: 401 }));
+    vi.stubGlobal('fetch', fetchMock);
+    const child = new FakeChild();
+    spawnMock.mockImplementation(() => child);
+    ttsService.installCloud(
+      () => ({
+        id: 'row-9',
+        displayName: 'Custom Cloud TTS',
+        baseUrl: 'https://tts.example.com/v1',
+        apiKey: 'bad-key',
+        model: 'alloy',
+      }),
+      () => {}
+    );
+    try {
+      const promise = ttsService.speak('hello');
+      // The cloud attempt awaits fetch first — wait until the local fallback
+      // actually spawns before closing it.
+      await vi.waitFor(() => expect(spawnMock).toHaveBeenCalled());
+      child.emitClose(0);
+      await expect(promise).resolves.toBeUndefined();
+      expect(spawnMock).toHaveBeenCalled();
+    } finally {
+      ttsService.installCloud(() => null, () => {});
+      vi.unstubAllGlobals();
+    }
+  });
 });
