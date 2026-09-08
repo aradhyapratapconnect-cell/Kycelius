@@ -1,5 +1,16 @@
 # Kyclius
 
+> [!WARNING]
+> ## 🚧 Project Shelved / Archived — Incomplete
+>
+> **This app is NOT completed and is no longer being actively developed or maintained.**
+>
+> This project has been **shelved / archived due to increasing complexity** and is not intended to be used or changed further by the original author.
+>
+> Anyone out there is **free to fork it, use it for themselves, and change it according to their own needs.** Feel free to take this codebase as a starting point for your own project.
+>
+> Thank you to everyone who checked it out.
+
 **A free, open-source, local-first AI desktop assistant you talk to out loud.**
 
 Say "write an email," "open VS Code," "summarize this file" — Kyclius reasons with an LLM, speaks its answer back, and takes real actions on your OS.
